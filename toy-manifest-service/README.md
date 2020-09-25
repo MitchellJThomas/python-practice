@@ -5,11 +5,9 @@ order and generating an ​OCI manifest​ when asked.
 
 | Resource | Description |
 | :--------- | :------------- |
-| `GET /manifest/{manifest_id}` | given a manifest_id in the form of a sha256 hash return the describing OCI manifest specification. |
-| `POST /manifest` | post your designed schema to this endpoint, afterwards a call to '/manifest/{manifest_id}'
-must return an OCI manifest specification for the given manifest
-hash. |
-| `GET /layer/{layer_id}` |  provides the layer contents in tar.gz format for the given layer id. The layers you will need to upload to your service ​can be found here​. |
+| `GET /manifest/{manifest_id}` | Given a manifest_id in the form of a sha256 hash return the describing OCI manifest specification. |
+| `POST /manifest` | Post your designed schema to this endpoint, afterwards a call to '/manifest/{manifest_id}'must return an OCI manifest specification for the given manifest hash. |
+| `GET /layer/{layer_id}` |  Provides the layer contents in tar.gz format for the given layer id. The layers you will need to upload to your service ​can be found here​. |
 
 ## Requirements
 
