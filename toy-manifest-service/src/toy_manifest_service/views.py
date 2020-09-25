@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import List, Optional, TypedDict, Union
+from typing import TypedDict
 
 from aiohttp import web
 
@@ -18,6 +18,7 @@ AgentStatus = TypedDict(
         'status': str,
     },
 )
+
 
 @routes.route('OPTIONS', '/installAgent')
 async def publish_options(request: web.Request) -> web.Response:
@@ -53,15 +54,6 @@ async def publish(request: web.Request) -> web.Response:
     if not consoleIP:
         return web.Response(text=f"Console IP required {body}", status=400)
 
-    agents_status.append(
-        {
-            'agentIP': install_request.get('agentIP', 'none'),
-            'agentType': install_request.get('agentType', 'Unknown'),
-            'agentVersion': install_request.get('agentVersion', 'Unknown'),
-            'consoleIP': install_request.get('consoleIP', ''),
-            'status': 'Installation in progress',
-        }
-    )
     response = web.Response(text=body)
     response.headers['Access-Control-Allow-Origin'] = '*'
 
@@ -72,6 +64,6 @@ async def publish(request: web.Request) -> web.Response:
 @routes.get('/getAgent')
 async def receive(request: web.Request) -> web.Response:
     # return web.HTTPNotFound()
-    response = web.json_response(agents_status)
+    response = web.json_response([])
     response.headers['Access-Control-Allow-Origin'] = '*'
     return response

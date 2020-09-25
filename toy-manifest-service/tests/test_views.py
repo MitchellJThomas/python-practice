@@ -1,10 +1,8 @@
-import copy
 import json
 
 import pytest
-from aiohttp import web
-
 from agent_manager import views
+from aiohttp import web
 
 
 @pytest.fixture
@@ -15,7 +13,7 @@ def cli(loop, aiohttp_client, monkeypatch):
 
 
 async def test_roundtrip(cli):
-    resp = await cli.post('/installAgent', data=json.dumps(data))
+    resp = await cli.post('/installAgent', data=json.dumps([]))
     assert resp.status == 200
     assert resp.headers['Access-Control-Allow-Origin'] == '*'
 
