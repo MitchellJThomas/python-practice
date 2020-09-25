@@ -1,7 +1,6 @@
 # The Toy Manifest Service
 
-The service which supports uploading a set of layers in a specific
-order and generating an ​OCI manifest​ when asked.
+The service which supports uploading a set of layers in a specific order and generating an ​[OCI manifest](https://github.com/opencontainers/image-spec/blob/master/manifest.md)​ when asked.
 
 | Resource | Description |
 | :--------- | :------------- |
