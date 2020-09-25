@@ -60,7 +60,24 @@ Run `make build`
 
 Run `make test`
 
-## Committing changes
+## Coding 
+
+1. [Install python](https://www.python.org/downloads/)... your system
+   may already have Python installed
+1. [Install pyenv](https://github.com/pyenv/pyenv) helpful when new
+   versions of python become available
+1. Install python 3.8 using pyenv e.g. `pyenv install 3.8.5`
+1. [Install pipenv](https://pipenv.pypa.io/en/latest/install/)
+1. Run `pipenv install` to install python dependencies
+
+
+### Updating Python dependencies
+
+1. Run `pipenv update`
+
+Sometimes you may need to remove the Pipfile.lock and then run `pipenv install`
+
+### Committing changes
 
 1. Ensure pre-commit tool is installed e.g. `pipx install pre-commit`
 1. Ensure pre-commit hooks are installed e.g. `pre-commit install`
