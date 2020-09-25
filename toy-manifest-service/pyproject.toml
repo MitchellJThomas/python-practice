@@ -1,0 +1,9 @@
+
+[tool.black]
+target-version = ['py38']
+skip-string-normalization = true
+
+[tool.isort]
+known_first_party = ['tests']
+profile = 'black'
+src_paths = 'src'

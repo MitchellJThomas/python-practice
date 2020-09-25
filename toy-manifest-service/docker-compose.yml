@@ -1,0 +1,12 @@
+version: '3'
+services:
+  toy-manifest-service:
+    image: toy-manifest-service
+    build: .
+    ports:
+      - 4000:4000
+    restart: always
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /code/.pytest_cache/
