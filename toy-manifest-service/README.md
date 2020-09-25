@@ -15,32 +15,32 @@ order and generating an ​OCI manifest​ when asked.
 
 The minimum work required to satisfy
 
-   ● Choose Python or Go as the programming language for implementation.
+   - Choose Python or Go as the programming language for implementation.
 
-   ● The API endpoints above should work with a simple HTTP Client such
+   - The API endpoints above should work with a simple HTTP Client such
    as curl or Postman.
 
-   ● The service must work ephemerally, persisting necessary data structures in memory.
+   - The service must work ephemerally, persisting necessary data structures in memory.
 
 ### Suggested
 
-   ● Use Postgres or MySQL to implement persistent storage. We should be
+   - Use Postgres or MySQL to implement persistent storage. We should be
      able to restart your service and have it give repeatable responses.
  
-   ● Explain your database schema choices in either comments or prose.
+   - Explain your database schema choices in either comments or prose.
  
-   ● Explain how you would change the schema after it has been defined,
+   - Explain how you would change the schema after it has been defined,
     e.g add/remove/change columns with/without downtime to the service.
  
-   ● Use a migration script for each phase of the migration.
+   - Use a migration script for each phase of the migration.
 
 ### Stretch
 
-   ● Implement http range requests for the "/layer" endpoints.
+   - Implement http range requests for the "/layer" endpoints.
 
-   ● Design for scale and make this apparent with comments or prose.
+   - Design for scale and make this apparent with comments or prose.
 
-   ● Support ​manifest annotations​.
+   - Support ​manifest annotations​.
 
 ## Setup
 
