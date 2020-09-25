@@ -62,6 +62,13 @@ Run `make build`
 
 Run `make test`
 
-# Clean up
+## Committing changes
+
+1. Ensure pre-commit tool is installed e.g. `pipx install pre-commit`
+1. Ensure pre-commit hooks are installed e.g. `pre-commit install`
+1. Run `pre-commit run -a` to check all the things
+1. Create a concise description of the changes and commit!
+
+## Clean up
 
 Run `make clean`
