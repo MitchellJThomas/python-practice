@@ -1,0 +1,29 @@
+types {
+    text/html                                        html htm shtml;
+    image/gif                                        gif;
+    image/jpeg                                       jpeg jpg;
+    image/png                                        png;
+
+    text/plain                                       txt;
+
+    application/javascript                           js;
+    application/octet-stream                         bin exe dll;
+    application/gzip                                 gzip gz;
+    application/tar+gzip                             tgz;
+    application/json                                 json;
+    application/zstd                                 zst;
+
+    application/vnd.oci.descriptor.v1+json          : Content Descriptor
+    application/vnd.oci.layout.header.v1+json       : OCI Layout
+    application/vnd.oci.image.index.v1+json         : Image Index
+    application/vnd.oci.image.manifest.v1+json      : Image manifest
+    application/vnd.oci.image.config.v1+json        : Image config
+    application/vnd.oci.image.layer.v1.tar          : "Layer", as a tar archive
+    application/vnd.oci.image.layer.v1.tar+gzip     : "Layer", as a tar archive compressed with gzip
+    application/vnd.oci.image.layer.v1.tar+zstd     : "Layer", as a tar archive compressed with zstd
+    application/vnd.oci.image.layer.nondistributable.v1.tar      : "Layer", as a tar archive with distribution restrictions
+    application/vnd.oci.image.layer.nondistributable.v1.tar+gzip : "Layer", as a tar archive with distribution restrictions compressed with gzip
+    application/vnd.oci.image.layer.nondistributable.v1.tar+zstd : "Layer", as a tar archive with distribution restrictions compressed with zstd
+
+
+}

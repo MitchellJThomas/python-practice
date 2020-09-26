@@ -86,3 +86,9 @@ Sometimes you may need to remove the Pipfile.lock and then run `pipenv install`
 ## Clean up
 
 Run `make clean`
+
+
+## Notes
+
+Useful (maybe) links:
+    - https://github.com/vsoch/oci-python
