@@ -1,5 +1,4 @@
 import hashlib
-import json
 import logging
 import os
 import urllib.parse as url
@@ -89,6 +88,10 @@ OCIManifest = TypedDict(
 )
 
 
+# mapping of string in the form of a digest to manifests
+manifests: Mapping[str, OCIManifest] = dict()
+
+
 @routes.route('OPTIONS', '/manifest')
 async def publish_options(request: web.Request) -> web.Response:
     return web.Response(
@@ -103,29 +106,31 @@ async def publish_options(request: web.Request) -> web.Response:
 
 @routes.post('/manifest')
 async def post_manifest(request: web.Request) -> web.Response:
-    body = await request.text()
-    install_request = json.loads(body)
-    log.info('Install request %s', body)
+    global manifests
+    oci_manifest = await request.json()
+    log.info(f'Posted manifest {oci_manifest}')
 
-    host = install_request.get('schemaVersion')
-    if not host:
-        return web.Response(text=f"Agent IP required {body}", status=400)
+    # manifests[oci_manifest["config"]["digest"]] = oci_manifest
 
-    response = web.Response(text=body)
-    response.headers['Access-Control-Allow-Origin'] = '*'
+    #    schemaVersion = install_request.get('schemaVersion')
+    #    if not schemaVersion:
+    #        return web.Response(text=f"schemaVersion required {body}", status=400)
 
-    # run_multiple_clients([{'host': host}])
-    return response
+    return web.json_response(oci_manifest)
 
 
 @routes.get('/manifest/{manifest_id}')
 async def get_manifest(request: web.Request) -> web.Response:
+    global manifests
     id = request.match_info['manifest_id']
-    log.info(f"Getting {id}")
 
-    response = web.json_response([])
-    response.headers['Access-Control-Allow-Origin'] = '*'
-    return response
+    log.info(f"Getting manifest for {id}")
+
+    manifest = manifests.get(id)
+    if manifest:
+        return web.json_response(manifest)
+
+    return web.json_response({"message": "Manifest for {id} not found"}, status=404)
 
 
 @routes.get('/layer/{layer_id}')
