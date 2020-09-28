@@ -18,8 +18,11 @@ builder: ## Build the developer image
 build: builder ## Build the service
 	$(DOCKER_COMPOSE) -f docker-compose.yml build
 
+layers:
+	mkdir layers
+
 .PHONY: run
-run: build ## Run the service
+run: build  layers ## Run the service
 	$(DOCKER_COMPOSE) -f docker-compose.yml up
 
 .PHONY: shell

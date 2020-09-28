@@ -1,8 +1,11 @@
+import hashlib
 import json
 import logging
+import os
 import urllib.parse as url
 from typing import Mapping, Optional, Set, TypedDict
 
+import aiofiles
 from aiohttp import web
 
 log = logging.getLogger(__name__)
@@ -80,7 +83,7 @@ async def publish_options(request: web.Request) -> web.Response:
 
 
 @routes.post('/manifest')
-async def publish(request: web.Request) -> web.Response:
+async def post_manifest(request: web.Request) -> web.Response:
     body = await request.text()
     install_request = json.loads(body)
     log.info('Install request %s', body)
@@ -97,7 +100,48 @@ async def publish(request: web.Request) -> web.Response:
 
 
 @routes.get('/manifest/{manifest_id}')
-async def receive(request: web.Request) -> web.Response:
+async def get_manifest(request: web.Request) -> web.Response:
+    id = request.match_info['manifest_id']
+    log.info(f"Getting {id}")
+
     response = web.json_response([])
     response.headers['Access-Control-Allow-Origin'] = '*'
     return response
+
+
+@routes.get('/layer/{layer_id}')
+async def get_layer(request: web.Request) -> web.Response:
+    request.match_info['layer_id']
+
+    response = web.json_response([])
+    response.headers['Content-Type'] = 'application/vnd.oci.image.layer.v1.tar+gzip'
+    return response
+
+
+@routes.post('/layer')
+async def post_layer(request: web.Request) -> web.Response:
+    content_len = request.content_length
+    content_type = request.content_type
+
+    if content_type == 'multipart/form-data':
+        reader = await request.multipart()
+        field = await reader.next()
+
+        filename = field.filename
+        log.info(
+            f'Uploading file length {content_len} type {content_type} filename {filename} field name {field.name}'
+        )
+        # You cannot rely on Content-Length if transfer is chunked.
+        size = 0
+        layer_digest = hashlib.sha256()
+        async with aiofiles.open(os.path.join('/layers', filename), mode='wb') as f:
+            while True:
+                chunk = await field.read_chunk(1048576)
+                if not chunk:
+                    break
+                size += len(chunk)
+                layer_digest.update(chunk)
+                await f.write(chunk)
+
+    sha256_digest = f"sha256:{layer_digest.hexdigest()}"
+    return web.json_response({"layer_id": sha256_digest})

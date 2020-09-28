@@ -7,6 +7,9 @@ services:
       - 4000:4000
     restart: always
     read_only: true
+    volumes:
+      - type: bind
+        source: ./layers
+        target: /layers
     tmpfs:
-      - /tmp
       - /code/.pytest_cache/

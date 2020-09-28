@@ -7,10 +7,13 @@ verify_ssl = true
 pytest = "*"
 pytest-asyncio = "*"
 pytest-aiohttp = "*"
+pytest-aiofiles = "*"
 pytest-mock = "*"
 
 [packages]
 aiohttp = {extras=["speedups"], version="*"}
+aiofiles = "*"
 
 [requires]
 python_version = "3.8"
+
