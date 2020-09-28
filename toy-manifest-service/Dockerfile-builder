@@ -1,0 +1,26 @@
+# agent-manager-builder image
+###############################################################################
+
+FROM python:3.8-alpine3.11
+
+RUN apk update && \
+    apk upgrade && \
+    apk add \
+    gcc \
+    g++ \
+    musl-dev \
+    libffi-dev \
+    python3-dev \
+    openssl-dev \
+    && \
+    pip install pipenv==2020.8.13
+WORKDIR /build
+
+# COPY Pipfile Pipfile.lock build/.netrc ./
+COPY Pipfile Pipfile.lock ./
+
+ARG PIPENV_PYUP_API_KEY=
+
+RUN PIPENV_VENV_IN_PROJECT=1 \
+    pipenv install --deploy && \
+    pipenv check
