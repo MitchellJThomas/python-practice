@@ -90,6 +90,7 @@ Run `make clean`
 
 ## Notes
 
-Interesting links:
-    - https://github.com/vsoch/oci-python
-    - https://jessewarden.com/2020/03/write-unbreakable-python.html
+Interesting links
+
+1. https://github.com/vsoch/oci-python
+1. https://jessewarden.com/2020/03/write-unbreakable-python.html
