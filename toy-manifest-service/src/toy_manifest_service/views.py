@@ -15,11 +15,13 @@ routes = web.RouteTableDef()
 OCIContentDescriptor = TypedDict(
     'OCIContentDescriptor',
     {
-        # REQUIRED Media type values MUST comply with RFC 6838,
+        #################
+        # Media type values MUST comply with RFC 6838,
         # including the naming requirements in its section
         # 4.2. including OCI types found in mime.types taken from
         # https://github.com/opencontainers/image-spec/blob/master/descriptor.md
         'mediaType': str,
+        #################
         # Digest values following the form
         # https://github.com/opencontainers/image-spec/blob/master/descriptor.md#digests
         # digest                ::= algorithm ":" encoded
@@ -28,17 +30,25 @@ OCIContentDescriptor = TypedDict(
         # algorithm-component   ::= [a-z0-9]+
         # algorithm-separator   ::= [+._-]
         # encoded               ::= [a-zA-Z0-9=_-]+
-        # REQUIRED Registered Algorithms are "sha512" and "sha256"
+        # Registered Algorithms are "sha512" and "sha256"
         'digest': str,
-        # REQUIRED Size should accomodate int64. Python3 int's can
-        # indeed do that e.g. int.bit_length(pow(2, 63))
+        #################
+        # The size property the size, in bytes, of the raw
+        # content. This property exists so that a client will have an
+        # expected size for the content before processing. If the
+        # length of the retrieved content does not match the specified
+        # length, the content SHOULD NOT be trusted.  Note: Size
+        # should accomodate int64. Python3 int's can indeed do that
+        # e.g. int.bit_length(pow(2, 63))
         'size': Optional[int],
-        # OPTIONAL urls specifies a list of URIs from which this
+        #################
+        # URLs specifies a list of URIs from which this
         # object MAY be downloaded. Each entry MUST conform to RFC
         # 3986. Entries SHOULD use the http and https schemes, as
         # defined in RFC 7230.
         'urls': Optional[Set[url.ParseResult]],
-        # OPTIONAL annotations follows the rules outlined here
+        #################
+        # Annotations contains arbitrary metadata for this descriptor.
         # https://github.com/opencontainers/image-spec/blob/master/annotations.md#rules
         'annotations': Optional[Mapping[str, str]],
     },
@@ -47,7 +57,8 @@ OCIContentDescriptor = TypedDict(
 OCIManifest = TypedDict(
     'OCIManifest',
     {
-        # This REQUIRED property specifies the image manifest schema
+        #################
+        # Schema version specifies the image manifest schema
         # version. For this version of the specification, this MUST be
         # 2 to ensure backward compatibility with older versions of
         # Docker. The value of this field will not change. This field
@@ -55,19 +66,25 @@ OCIManifest = TypedDict(
         # specification. Taken from
         # https://github.com/opencontainers/image-spec/blob/master/manifest.md
         'schemaVersion': int,
-        # This property is reserved for use, to maintain
+        #################
+        # Media type reserved for use to maintain
         # compatibility. When used, this field contains the media type
         # of this document, which differs from the descriptor use of
         # mediaType.
         'mediaType': str,
-        # This REQUIRED property references a configuration object for
-        # a container, by digest.
+        #################
+        # The configuration object for a container, by digest.
         'config': OCIContentDescriptor,
-        # Each item in the array MUST be a descriptor. The array MUST have the base layer at index 0. Subsequent layers MUST then follow in stack order (i.e. from layers[0] to layers[len(layers)-1]). The final filesystem layout MUST match the result of applying the layers to an empty directory. The ownership, mode, and other attributes of the initial empty directory are unspecified.
+        #################
+        # The layers of the image. A final filesystem layout MUST
+        # match the result of applying the layers to an empty
+        # directory. The ownership, mode, and other attributes of the
+        # initial empty directory are unspecified.
         'layers': Sequence[OCIContentDescriptor],
-        # This OPTIONAL property contains arbitrary metadata for the
-        # image manifest.
+        #################
+        # Arbitrary metadata for the image manifest.
         'annotations': Optional[Mapping[str, str]],
+        #################
     },
 )
 
