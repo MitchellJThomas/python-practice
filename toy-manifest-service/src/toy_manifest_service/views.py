@@ -118,10 +118,11 @@ async def get_layer(request: web.Request) -> web.Response:
     return response
 
 
-@routes.post('/layer')
+@routes.post('/layer/{layer_id}')
 async def post_layer(request: web.Request) -> web.Response:
     content_len = request.content_length
     content_type = request.content_type
+    layer_id = request.match_info['layer_id']
 
     if content_type == 'multipart/form-data':
         reader = await request.multipart()
@@ -144,4 +145,4 @@ async def post_layer(request: web.Request) -> web.Response:
                 await f.write(chunk)
 
     sha256_digest = f"sha256:{layer_digest.hexdigest()}"
-    return web.json_response({"layer_id": sha256_digest})
+    return web.json_response({"upload_digest": sha256_digest, "layer_id": layer_id})
