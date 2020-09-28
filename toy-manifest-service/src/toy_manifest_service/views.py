@@ -3,7 +3,7 @@ import json
 import logging
 import os
 import urllib.parse as url
-from typing import Mapping, Optional, Set, TypedDict
+from typing import Mapping, Optional, Sequence, Set, TypedDict
 
 import aiofiles
 from aiohttp import web
@@ -63,6 +63,8 @@ OCIManifest = TypedDict(
         # This REQUIRED property references a configuration object for
         # a container, by digest.
         'config': OCIContentDescriptor,
+        # Each item in the array MUST be a descriptor. The array MUST have the base layer at index 0. Subsequent layers MUST then follow in stack order (i.e. from layers[0] to layers[len(layers)-1]). The final filesystem layout MUST match the result of applying the layers to an empty directory. The ownership, mode, and other attributes of the initial empty directory are unspecified.
+        'layers': Sequence[OCIContentDescriptor],
         # This OPTIONAL property contains arbitrary metadata for the
         # image manifest.
         'annotations': Optional[Mapping[str, str]],
@@ -114,6 +116,7 @@ async def get_layer(request: web.Request) -> web.Response:
     request.match_info['layer_id']
 
     response = web.json_response([])
+
     response.headers['Content-Type'] = 'application/vnd.oci.image.layer.v1.tar+gzip'
     return response
 
