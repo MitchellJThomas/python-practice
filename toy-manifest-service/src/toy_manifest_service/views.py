@@ -156,6 +156,8 @@ async def post_manifest(request: web.Request) -> web.Response:
         config = manifest["config"]
         digest = config["digest"]
 
+        # Issue: mypy reports Unsupported target for indexed assignment ("Mapping[str, OCIManifest]")
+        # However tests work.  Need to figure out what mypy is unhappy with
         manifests[digest] = manifest  # type: ignore
 
         return web.json_response({"manifest": manifest})
