@@ -4,6 +4,7 @@ import pytest
 from aiohttp import web
 
 from toy_manifest_service import views
+from toy_manifest_service.views import OCIContentDescriptor, OCIManifest, build_manifest
 
 
 @pytest.fixture
@@ -33,9 +34,38 @@ async def test_manifest_roundtrip(cli):
     resp = await cli.post('/manifest', data=json.dumps(manifest))
     assert resp.status == 200
     message = await resp.json()
-    assert message == manifest
+    assert message["manifest"] == manifest
 
     resp = await cli.get(f'/manifest/{manifest["config"]["digest"]}')
     assert resp.status == 200
-    message = await resp.json()
-    assert message == manifest
+    get_manifest = await resp.json()
+    assert get_manifest["manifest"] == manifest
+
+
+async def test_manifest_validation():
+    manifest = OCIManifest(
+        schemaVersion=2,
+        mediaType="manifest_media",
+        config=OCIContentDescriptor(
+            mediaType="media_thingy",
+            digest="sha256:deadbeefx0000",
+            size=42,
+            urls=None,
+            annotations=None,
+        ),
+        layers=[
+            OCIContentDescriptor(
+                mediaType="layer_media_thingy",
+                digest="sha256:abc123",
+                size=2,
+                urls=None,
+                annotations=None,
+            )
+        ],
+        annotations={
+            "com.me.group": "machine learning",
+            "com.them.group": "money handler",
+        },
+    )
+
+    assert manifest == build_manifest(manifest)

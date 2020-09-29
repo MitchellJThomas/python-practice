@@ -1,8 +1,9 @@
 import hashlib
 import logging
 import os
+import typing
 import urllib.parse as url
-from typing import Mapping, Optional, Sequence, Set, TypedDict
+from typing import Mapping, Optional, Sequence, Set, Tuple, TypedDict
 
 import aiofiles
 from aiohttp import web
@@ -39,7 +40,7 @@ OCIContentDescriptor = TypedDict(
         # length, the content SHOULD NOT be trusted.  Note: Size
         # should accomodate int64. Python3 int's can indeed do that
         # e.g. int.bit_length(pow(2, 63))
-        'size': Optional[int],
+        'size': int,
         #################
         # URLs specifies a list of URIs from which this
         # object MAY be downloaded. Each entry MUST conform to RFC
@@ -70,7 +71,7 @@ OCIManifest = TypedDict(
         # compatibility. When used, this field contains the media type
         # of this document, which differs from the descriptor use of
         # mediaType.
-        'mediaType': str,
+        'mediaType': Optional[str],
         #################
         # The configuration object for a container, by digest.
         'config': OCIContentDescriptor,
@@ -88,8 +89,50 @@ OCIManifest = TypedDict(
 )
 
 
+def required_keys(type_hint):
+    """Return those keys which are required for a particular typing hint"""
+    return [
+        k
+        for (k, v) in typing.get_type_hints(type_hint).items()
+        if type(None) not in typing.get_args(v)
+    ]
+
+
+def build_manifest(
+    manifest: Mapping[str, str]
+) -> Tuple[Optional[OCIManifest], Optional[Exception]]:
+    """Verify and build a manifest typed dictionary from a Mapping e.g. something parsed by json.loads
+    This takes the Python typing hints and applies them (partially) at runtime"""
+
+    # Verify top level manifest has the right keys
+
+    for k in required_keys(OCIManifest):
+        if k not in manifest:
+            return (None, Exception(f"Manifest {manifest} must contain key {k}"))
+
+    # Verify config in manifest has right keys
+    required_descriptor_keys = required_keys(OCIContentDescriptor)
+    config = manifest['config']
+    for k in required_descriptor_keys:
+        if k not in config:
+            return (None, Exception(f"Manifest {manifest} config must contain key {k}"))
+
+    # Verify layers in manifest have the correct keys
+    for k in required_descriptor_keys:
+        for layer in manifest['layers']:
+            if k not in layer:
+                return (
+                    None,
+                    Exception(
+                        f"Manifest {manifest} layer {layer} must contain key {k}"
+                    ),
+                )
+
+    return (typing.cast(OCIManifest, manifest), None)
+
+
 # mapping of string in the form of a digest to manifests
-manifests: Mapping[str, OCIManifest] = dict()
+manifests: Mapping[str, OCIManifest] = {}
 
 
 @routes.route('OPTIONS', '/manifest')
@@ -106,17 +149,18 @@ async def publish_options(request: web.Request) -> web.Response:
 
 @routes.post('/manifest')
 async def post_manifest(request: web.Request) -> web.Response:
-    global manifests
-    oci_manifest = await request.json()
-    log.info(f'Posted manifest {oci_manifest}')
+    manifest_json = await request.json()
+    (manifest, error) = build_manifest(manifest_json)
+    if manifest:
+        log.info(f'Posted manifest {manifest}')
+        config = manifest["config"]
+        digest = config["digest"]
 
-    # manifests[oci_manifest["config"]["digest"]] = oci_manifest
+        manifests[digest] = manifest  # type: ignore
 
-    #    schemaVersion = install_request.get('schemaVersion')
-    #    if not schemaVersion:
-    #        return web.Response(text=f"schemaVersion required {body}", status=400)
+        return web.json_response({"manifest": manifest})
 
-    return web.json_response(oci_manifest)
+    return web.json_response({"error": error, "manifest": manifest}, status=400)
 
 
 @routes.get('/manifest/{manifest_id}')
@@ -128,7 +172,7 @@ async def get_manifest(request: web.Request) -> web.Response:
 
     manifest = manifests.get(id)
     if manifest:
-        return web.json_response(manifest)
+        return web.json_response({"manifest": manifest})
 
     return web.json_response({"message": "Manifest for {id} not found"}, status=404)
 
