@@ -1,16 +1,18 @@
 # Python Program for union-find algorithm to detect cycle in a undirected graph
 # we have one egde for any two vertex i.e 1-2 is either 1-2 or 2-1 but not both
+# This code is contributed by Neelam Yadav
 
 from collections import defaultdict
 
 
 # This class represents a undirected graph using adjacency list representation
 class Graph:
-    def __init__(self, nodes):
-        self.nodes = nodes
+    def __init__(self):
+        self.nodes = set()
         self.graph = defaultdict(list)
 
     def addEdge(self, u, v):
+
         self.graph[u].append(v)
 
     def find_parent(self, parent, i):
@@ -46,15 +48,15 @@ class Graph:
                 self.union(parent, x, y)
 
 
-# Create a graph given in the above diagram
-g = Graph(3)
-g.addEdge(0, 1)
-g.addEdge(1, 2)
-g.addEdge(2, 0)
+def main():
+    g = Graph()
+    g.addEdge(0, 1)
+    g.addEdge(1, 2)
+    g.addEdge(2, 0)
+    if g.isCyclic():
+        print("Graph contains cycle")
+    else:
+        print("Graph does not contain cycle")
 
-if g.isCyclic():
-    print("Graph contains cycle")
-else:
-    print("Graph does not contain cycle")
 
-# This code is contributed by Neelam Yadav
+main()

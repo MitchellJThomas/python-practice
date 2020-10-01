@@ -12,3 +12,6 @@ Join two subsets into a single subset.
 
 ## Notes
 
+Experiment with union-find.py running `python union-find.py`
+
+
