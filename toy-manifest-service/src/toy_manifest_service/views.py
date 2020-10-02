@@ -13,14 +13,14 @@ log = logging.getLogger(__name__)
 routes = web.RouteTableDef()
 
 OCIContentDescriptor = TypedDict(
-    'OCIContentDescriptor',
+    "OCIContentDescriptor",
     {
         #################
         # Media type values MUST comply with RFC 6838,
         # including the naming requirements in its section
         # 4.2. including OCI types found in mime.types taken from
         # https://github.com/opencontainers/image-spec/blob/master/descriptor.md
-        'mediaType': str,
+        "mediaType": str,
         #################
         # Digest values following the form
         # https://github.com/opencontainers/image-spec/blob/master/descriptor.md#digests
@@ -31,7 +31,7 @@ OCIContentDescriptor = TypedDict(
         # algorithm-separator   ::= [+._-]
         # encoded               ::= [a-zA-Z0-9=_-]+
         # Registered Algorithms are "sha512" and "sha256"
-        'digest': str,
+        "digest": str,
         #################
         # The size property the size, in bytes, of the raw
         # content. This property exists so that a client will have an
@@ -40,22 +40,22 @@ OCIContentDescriptor = TypedDict(
         # length, the content SHOULD NOT be trusted.  Note: Size
         # should accomodate int64. Python3 int's can indeed do that
         # e.g. int.bit_length(pow(2, 63))
-        'size': int,
+        "size": int,
         #################
         # URLs specifies a list of URIs from which this
         # object MAY be downloaded. Each entry MUST conform to RFC
         # 3986. Entries SHOULD use the http and https schemes, as
         # defined in RFC 7230.
-        'urls': Optional[Set[url.ParseResult]],
+        "urls": Optional[Set[url.ParseResult]],
         #################
         # Annotations contains arbitrary metadata for this descriptor.
         # https://github.com/opencontainers/image-spec/blob/master/annotations.md#rules
-        'annotations': Optional[Mapping[str, str]],
+        "annotations": Optional[Mapping[str, str]],
     },
 )
 
 OCIManifest = TypedDict(
-    'OCIManifest',
+    "OCIManifest",
     {
         #################
         # Schema version specifies the image manifest schema
@@ -65,25 +65,25 @@ OCIManifest = TypedDict(
         # MAY be removed in a future version of the
         # specification. Taken from
         # https://github.com/opencontainers/image-spec/blob/master/manifest.md
-        'schemaVersion': int,
+        "schemaVersion": int,
         #################
         # Media type reserved for use to maintain
         # compatibility. When used, this field contains the media type
         # of this document, which differs from the descriptor use of
         # mediaType.
-        'mediaType': Optional[str],
+        "mediaType": Optional[str],
         #################
         # The configuration object for a container, by digest.
-        'config': OCIContentDescriptor,
+        "config": OCIContentDescriptor,
         #################
         # The layers of the image. A final filesystem layout MUST
         # match the result of applying the layers to an empty
         # directory. The ownership, mode, and other attributes of the
         # initial empty directory are unspecified.
-        'layers': Sequence[OCIContentDescriptor],
+        "layers": Sequence[OCIContentDescriptor],
         #################
         # Arbitrary metadata for the image manifest.
-        'annotations': Optional[Mapping[str, str]],
+        "annotations": Optional[Mapping[str, str]],
         #################
     },
 )
@@ -112,14 +112,14 @@ def build_manifest(
 
     # Verify config in manifest has right keys
     required_descriptor_keys = required_keys(OCIContentDescriptor)
-    config = manifest['config']
+    config = manifest["config"]
     for k in required_descriptor_keys:
         if k not in config:
             return (None, Exception(f"Manifest {manifest} config must contain key {k}"))
 
     # Verify layers in manifest have the correct keys
     for k in required_descriptor_keys:
-        for layer in manifest['layers']:
+        for layer in manifest["layers"]:
             if k not in layer:
                 return (
                     None,
@@ -135,24 +135,24 @@ def build_manifest(
 manifests: Mapping[str, OCIManifest] = {}
 
 
-@routes.route('OPTIONS', '/manifest')
+@routes.route("OPTIONS", "/manifest")
 async def publish_options(request: web.Request) -> web.Response:
     return web.Response(
         headers={
-            'Allow': 'OPTIONS, POST',
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Headers': 'Content-Type',
-            'Access-Control-Max-Age': '86400',
+            "Allow": "OPTIONS, POST",
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Headers": "Content-Type",
+            "Access-Control-Max-Age": "86400",
         }
     )
 
 
-@routes.post('/manifest')
+@routes.post("/manifest")
 async def post_manifest(request: web.Request) -> web.Response:
     manifest_json = await request.json()
     (manifest, error) = build_manifest(manifest_json)
     if manifest:
-        log.info(f'Posted manifest {manifest}')
+        log.info(f"Posted manifest {manifest}")
         config = manifest["config"]
         digest = config["digest"]
 
@@ -165,10 +165,10 @@ async def post_manifest(request: web.Request) -> web.Response:
     return web.json_response({"error": error, "manifest": manifest}, status=400)
 
 
-@routes.get('/manifest/{manifest_id}')
+@routes.get("/manifest/{manifest_id}")
 async def get_manifest(request: web.Request) -> web.Response:
     global manifests
-    id = request.match_info['manifest_id']
+    id = request.match_info["manifest_id"]
 
     log.info(f"Getting manifest for {id}")
 
@@ -179,34 +179,34 @@ async def get_manifest(request: web.Request) -> web.Response:
     return web.json_response({"message": "Manifest for {id} not found"}, status=404)
 
 
-@routes.get('/layer/{layer_id}')
+@routes.get("/layer/{layer_id}")
 async def get_layer(request: web.Request) -> web.Response:
-    request.match_info['layer_id']
+    request.match_info["layer_id"]
 
     response = web.json_response([])
 
-    response.headers['Content-Type'] = 'application/vnd.oci.image.layer.v1.tar+gzip'
+    response.headers["Content-Type"] = "application/vnd.oci.image.layer.v1.tar+gzip"
     return response
 
 
-@routes.post('/layer/{layer_id}')
+@routes.post("/layer/{layer_id}")
 async def post_layer(request: web.Request) -> web.Response:
     content_len = request.content_length
     content_type = request.content_type
-    layer_id = request.match_info['layer_id']
+    layer_id = request.match_info["layer_id"]
 
-    if content_type == 'multipart/form-data':
+    if content_type == "multipart/form-data":
         reader = await request.multipart()
         field = await reader.next()
 
         filename = field.filename
         log.info(
-            f'Uploading file length {content_len} type {content_type} filename {filename} field name {field.name}'
+            f"Uploading file length {content_len} type {content_type} filename {filename} field name {field.name}"
         )
         # You cannot rely on Content-Length if transfer is chunked.
         size = 0
         layer_digest = hashlib.sha256()
-        async with aiofiles.open(os.path.join('/layers', filename), mode='wb') as f:
+        async with aiofiles.open(os.path.join("/layers", filename), mode="wb") as f:
             while True:
                 chunk = await field.read_chunk(1048576)
                 if not chunk:

@@ -31,7 +31,7 @@ async def test_manifest_roundtrip(cli):
         ],
         "annotations": {"com.example.key1": "value1", "com.example.key2": "value2"},
     }
-    resp = await cli.post('/manifest', data=json.dumps(manifest))
+    resp = await cli.post("/manifest", data=json.dumps(manifest))
     assert resp.status == 200
     message = await resp.json()
     assert message["manifest"] == manifest
