@@ -15,7 +15,15 @@ from functools import partial
 
 
 def create_manifest_layers_statement():
-    return """
+    """Create the de-normalized OCI manifest+layer table(s) and indicies
+    using JSON for annotations and urls
+    See https://www.postgresql.org/docs/13/ddl-partitioning.html for partition details
+    """
+    num_weeks = 12
+    partition_statements = "".join(
+        [t for t in create_partition_table_statements(num_weeks)]
+    )
+    main_statement = """
     CREATE TABLE manifest_layers (
       creation_date            date not null,
       manifest_config_digest,
@@ -31,6 +39,12 @@ def create_manifest_layers_statement():
       manifest_config_urls_json
     ) PARTITION BY RANGE (creation_date);
     """
+    index_statements = """
+    CREATE INDEX on creation_date;
+    CREATE INDEX on manifest_config_digest;
+    CREATE INDEX on digest;
+    """
+    return main_statement + partition_statements + index_statements
 
 
 def create_partition_table_statement(table_name, start_date):
@@ -39,18 +53,24 @@ def create_partition_table_statement(table_name, start_date):
     year = iso_cal[0]
     week = iso_cal[1]
     end_date = start_date + timedelta(weeks=1)
-    return f"CREATE TABLE {table_name}_{week}_{year} PARTITION OF {table_name} FOR VALUES FROM ('{start_date}') TO ('{end_date}');"
+    return f"""
+    CREATE TABLE {table_name}_{week}_{year} PARTITION OF {table_name}
+       FOR VALUES FROM ('{start_date}') TO ('{end_date}')
+       PARTITION BY RANGE (manifest_config_digest);
+    """
 
 
-def create_partition_table_statements():
+def create_partition_table_statements(num_weeks):
     today = date.today()
     manifest_layer_tables = partial(create_partition_table_statement, "manifest_layers")
     return map(
-        manifest_layer_tables, [(today + timedelta(weeks=x)) for x in range(52)],
+        manifest_layer_tables, [(today + timedelta(weeks=x)) for x in range(num_weeks)],
     )
 
 
-# Partitioning scheme
+print(create_manifest_layers_statement())
+
+# Partitioning scheme notes
 # https://minervadb.com/index.php/postgresql-dynamic-partitioning/
 # https://www.postgresql.org/docs/13/ddl-partitioning.html
 # Range partitioning by timestamp
