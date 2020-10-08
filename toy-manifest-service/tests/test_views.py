@@ -68,4 +68,6 @@ async def test_manifest_validation():
         },
     )
 
-    assert manifest == build_manifest(manifest)
+    built_manifest, error = build_manifest(manifest)
+    assert error is None
+    assert manifest == built_manifest
