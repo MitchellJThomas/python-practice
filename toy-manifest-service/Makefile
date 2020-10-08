@@ -7,31 +7,29 @@ help:
 ################################################################################
 # Local docker development helpers.
 
-DOCKER_COMPOSE ?= docker-compose
-SERVICE_NAME = toy-manifest-service
-
 .PHONY: builder
 builder: ## Build the developer image
-	docker build -f ./Dockerfile-builder -t $(SERVICE_NAME)-builder:latest .
+	docker build -f ./Dockerfile-builder -t toy-manifest-service-builder:latest .
 
 .PHONY: build
 build: builder ## Build the service
-	$(DOCKER_COMPOSE) -f docker-compose.yml build
+	docker-compose -f docker-compose.yml build
 
 layers:
 	mkdir layers
 
 .PHONY: run
 run: build  layers ## Run the service
-	$(DOCKER_COMPOSE) -f docker-compose.yml up
+	docker-compose -f docker-compose.yml up
 
 .PHONY: shell
 shell: build ## Run in shell in service container
-	$(DOCKER_COMPOSE) -f docker-compose.yml run -v $$PWD/src:/code $(SERVICE_NAME) /bin/sh
+	docker-compose -f docker-compose.yml run -v $$PWD/src:/code toy-manifest-service sh
 
 .PHONY: test
 test: builder ## Test the code using pytest
-	docker run -ti --rm -v $$PWD/src:/code $(SERVICE_NAME)-builder pipenv install --dev; pipenv run pytest
+	docker-compose -f docker-compose-test.yml run --volume=$$PWD:/build toy-manifest-service-tester sh -c "pipenv install --dev; pipenv run pytest"
+	docker-compose -f docker-compose-test.yml rm -v -f -s 
 
 
 ################################################################################
@@ -39,7 +37,7 @@ test: builder ## Test the code using pytest
 
 .PHONY: clean
 clean: ## Clean build directories and local docker artifacts
-	docker-compose rm -f -v
-	docker rmi -f $(SERVICE_NAME)-builder:latest
-	docker rmi -f $(SERVICE_NAME):latest
-	docker volume rm -f toy-manifest-service_db_data
+	docker-compose -f docker-compose.yml rm -f -v -s
+	docker-compose -f docker-compose-test.yml rm -f -v -s
+	docker rmi -f toy-manifest-service-builder:latest
+	docker rmi -f toy-manifest-service:latest

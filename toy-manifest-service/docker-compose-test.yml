@@ -1,0 +1,35 @@
+version: '3'
+services:
+  toy-manifest-service-tester:
+    image: toy-manifest-service-builder
+    build:
+      dockerfile: Dockerfile-builder
+      context: .
+    ports:
+      - 4000:4000
+    restart: always
+    environment:
+      PGPASSWORD: oci_comp-123
+      PGUSER: manifests
+      PGDATABASE: manifests
+      PGHOST: db
+    volumes:
+      - type: bind
+        source: ./layers
+        target: /layers
+    tmpfs:
+      - /code/.pytest_cache/
+      - /tmp
+    depends_on:
+      - "db"
+  db:
+    image: postgres:13
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: oci_comp-123
+      POSTGRES_DB: manifests
+      POSTGRES_USER: manifests
+    volumes:
+      - db_data:/var/lib/postgresql/data
+volumes:
+  db_data:

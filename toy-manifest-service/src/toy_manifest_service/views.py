@@ -104,20 +104,19 @@ def build_manifest(
     """Verify and build a manifest typed dictionary from a Mapping e.g. something parsed by json.loads
     This takes the Python typing hints and applies them (partially) at runtime"""
 
-    # Verify top level manifest has the right keys
-
+    # Verify top level manifest has the required keys
     for k in required_keys(OCIManifest):
         if k not in manifest:
             return (None, Exception(f"Manifest {manifest} must contain key {k}"))
 
-    # Verify config in manifest has right keys
+    # Verify config in manifest has required keys
     required_descriptor_keys = required_keys(OCIContentDescriptor)
     config = manifest["config"]
     for k in required_descriptor_keys:
         if k not in config:
             return (None, Exception(f"Manifest {manifest} config must contain key {k}"))
 
-    # Verify layers in manifest have the correct keys
+    # Verify layers in manifest have the required keys
     for k in required_descriptor_keys:
         for layer in manifest["layers"]:
             if k not in layer:
@@ -127,6 +126,10 @@ def build_manifest(
                         f"Manifest {manifest} layer {layer} must contain key {k}"
                     ),
                 )
+
+    # Verify values in the manifest
+    if manifest["schemaVersion"] != 2:
+        return (None, Exception(f"Manifest {manifest} schemaVersion must be 2"))
 
     return (typing.cast(OCIManifest, manifest), None)
 
@@ -157,7 +160,7 @@ async def post_manifest(request: web.Request) -> web.Response:
         digest = config["digest"]
 
         # Issue: mypy reports Unsupported target for indexed assignment ("Mapping[str, OCIManifest]")
-        # However tests work.  Need to figure out what mypy is unhappy with
+        # However tests work. Need to figure out what mypy is unhappy with
         manifests[digest] = manifest  # type: ignore
 
         return web.json_response({"manifest": manifest})
@@ -176,7 +179,7 @@ async def get_manifest(request: web.Request) -> web.Response:
     if manifest:
         return web.json_response({"manifest": manifest})
 
-    return web.json_response({"message": "Manifest for {id} not found"}, status=404)
+    return web.json_response({"message": f"Manifest for {id} not found"}, status=404)
 
 
 @routes.get("/layer/{layer_id}")
@@ -219,6 +222,7 @@ async def post_layer(request: web.Request) -> web.Response:
     return web.json_response({"upload_digest": sha256_digest, "layer_id": layer_id})
 
 
+# Typical Kubernetes/Open
 # See https://kubernetes.io/docs/reference/using-api/health-checks/ for details
 @routes.get("/livez")
 async def health(request: web.Request) -> web.Response:
