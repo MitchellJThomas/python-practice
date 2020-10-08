@@ -39,6 +39,7 @@ test: builder ## Test the code using pytest
 
 .PHONY: clean
 clean: ## Clean build directories and local docker artifacts
-	docker-compose rm -f
+	docker-compose rm -f -v
 	docker rmi -f $(SERVICE_NAME)-builder:latest
 	docker rmi -f $(SERVICE_NAME):latest
+	docker volume rm -f toy-manifest-service_db_data
