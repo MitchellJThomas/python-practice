@@ -1,17 +1,22 @@
 from datetime import date, timedelta
 from functools import partial
 
+import asyncpg
+
 # Single table Postgres schema (version 13)
 # De-normalized per layer, Annotations JSONB
 # where urls_json = {
 #     "urls": ["url1", "url2"]
 #     }
-
 # where annotations_json = {
 #     "manifest": {},
 #     "manfiest_config": {},
 #     "layer": {}
 #    }
+# Partitioning scheme notes
+# https://minervadb.com/index.php/postgresql-dynamic-partitioning/
+# https://www.postgresql.org/docs/13/ddl-partitioning.html
+# Range partitioning by timestamp
 
 
 def create_manifest_layers_statement():
@@ -68,9 +73,8 @@ def create_partition_table_statements(num_weeks):
     )
 
 
-print(create_manifest_layers_statement())
+# print(create_manifest_layers_statement())
 
-# Partitioning scheme notes
-# https://minervadb.com/index.php/postgresql-dynamic-partitioning/
-# https://www.postgresql.org/docs/13/ddl-partitioning.html
-# Range partitioning by timestamp
+
+async def initialize_database() -> asyncpg.pool.Pool:
+    return await asyncpg.create_pool(command_timeout=60)

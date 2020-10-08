@@ -7,9 +7,28 @@ services:
       - 4000:4000
     restart: always
     read_only: true
+    environment:
+      PGPASSWORD: oci_comp-123
+      PGUSER: manifests
+      PGDATABASE: manifests
+      PGHOST: db
     volumes:
       - type: bind
         source: ./layers
         target: /layers
     tmpfs:
       - /code/.pytest_cache/
+    depends_on:
+      - "db"
+    user: 2000:2000
+  db:
+    image: postgres:13
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: oci_comp-123
+      POSTGRES_DB: manifests
+      POSTGRES_USER: manifests
+    volumes:
+      - db_data:/var/lib/postgresql/data
+volumes:
+  db_data:

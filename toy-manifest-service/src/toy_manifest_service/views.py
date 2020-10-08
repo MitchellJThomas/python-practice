@@ -217,3 +217,17 @@ async def post_layer(request: web.Request) -> web.Response:
 
     sha256_digest = f"sha256:{layer_digest.hexdigest()}"
     return web.json_response({"upload_digest": sha256_digest, "layer_id": layer_id})
+
+
+# See https://kubernetes.io/docs/reference/using-api/health-checks/ for details
+@routes.get("/livez")
+async def health(request: web.Request) -> web.Response:
+    return web.Response()
+
+
+# See https://kubernetes.io/docs/reference/using-api/health-checks/ for details
+@routes.get("/readyz")
+async def livez(request: web.Request) -> web.Response:
+    pool = request.app['conn_pool']
+    await pool.fetch('SELECT 1')
+    return web.Response()
