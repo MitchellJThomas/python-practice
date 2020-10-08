@@ -16,7 +16,6 @@ RUN apk update && \
     pip install pipenv==2020.8.13
 WORKDIR /build
 
-# COPY Pipfile Pipfile.lock build/.netrc ./
 COPY Pipfile Pipfile.lock ./
 
 ARG PIPENV_PYUP_API_KEY=
