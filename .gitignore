@@ -140,3 +140,6 @@ dmypy.json
 
 # js
 node_modules
+
+# sqitch
+sqitch

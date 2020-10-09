@@ -32,6 +32,15 @@ test: builder ## Test the code using pytest
 	docker-compose -f docker-compose-test.yml rm -v -f -s 
 
 
+.PHONY: sqitch
+sqitch:
+	docker pull sqitch/sqitch
+	curl -L https://git.io/JJKCn -o sqitch && chmod +x sqitch
+
+.PHONY: testdb
+testdb:
+	docker run --rm -p 5432:5432 -e POSTGRES_USER=manifests -e POSTGRES_PASSWORD=oci_comp-123 postgres:13
+
 ################################################################################
 # Housekeepking helpers.
 
