@@ -143,3 +143,6 @@ node_modules
 
 # sqitch
 sqitch
+
+# manifests
+layers
