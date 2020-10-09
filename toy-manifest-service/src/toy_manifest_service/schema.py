@@ -6,12 +6,13 @@ import asyncpg
 # Single table Postgres schema (version 13)
 # De-normalized per layer, Annotations JSONB
 # where urls_json = {
-#     "urls": ["url1", "url2"]
+#     "layer": ["url1", "url2"]
+#     "manifest_config_urls": ["url1", "url2"]
 #     }
 # where annotations_json = {
-#     "manifest": {},
-#     "manfiest_config": {},
 #     "layer": {}
+#     "manfiest_config": {},
+#     "manifest": {},
 #    }
 # Partitioning scheme notes
 # https://minervadb.com/index.php/postgresql-dynamic-partitioning/
@@ -30,20 +31,24 @@ def create_manifest_layers_statement():
     )
     main_statement = """
     CREATE TABLE manifest_layers (
-      creation_date            date not null,
-      manifest_config_digest,
-      order,
-      digest,
-      media_type,
-      size,
-      urls_json,
-      annotations_json,
-      manifest_schema_ersion,
-      manifest_media_type,
-      manifest_config_media_type,
-      manifest_config_size,
-      manifest_config_urls_json
-    ) PARTITION BY RANGE (creation_date);
+      annotations              jsonb,
+      timestamp                timestamptz DEFAULT NOW(),
+      digest                   text not null,
+      media_type               text not null,
+      order                    smallint not null,
+      size                     bigint not null,
+      urls                     jsonb,
+
+      manifest_config_digest     text not null,
+      manifest_config_media_type text not null,
+      manifest_config_size       bigint not null,
+      manifest_media_type        text,
+      manifest_schema_version    smalint not null,
+
+      primary key (digest)
+
+    )
+    PARTITION BY RANGE (creation_date);
     """
     index_statements = """
     CREATE INDEX on creation_date;
