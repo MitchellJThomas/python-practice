@@ -1,5 +1,5 @@
 %syntax-version=1.0.0
-%project=flipr
+%project=toy-manifest-service
 %uri=https://github.com/MitchellJThomas/python-practice/tree/master/toy-manifest-service
 
 manifesttable 2020-10-09T01:07:51Z Mitchell Thomas <mitch.thomas@gmail.com> # Add manifest table
