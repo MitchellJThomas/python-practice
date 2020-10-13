@@ -37,6 +37,11 @@ sqitch:
 	docker pull sqitch/sqitch
 	curl -L https://git.io/JJKCn -o sqitch && chmod +x sqitch
 
+.PHONY: build-db
+build-db: ## Build the postgres database image with sqitch init script
+	./sqitch bundle
+	docker build -t toy-manifest-service-db -f Dockerfile-db .
+
 .PHONY: testdb
 testdb:
 	docker run --rm -p 5432:5432 -e POSTGRES_USER=manifests -e POSTGRES_PASSWORD=oci_comp-123 postgres:13
