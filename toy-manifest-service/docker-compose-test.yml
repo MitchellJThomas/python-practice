@@ -1,9 +1,9 @@
 version: '3'
 services:
   toy-manifest-service-tester:
-    image: toy-manifest-service-builder
+    image: toy-manifest-service-tester
     build:
-      dockerfile: Dockerfile-builder
+      dockerfile: Dockerfile-tester
       context: .
     ports:
       - 4000:4000

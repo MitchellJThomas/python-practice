@@ -24,11 +24,11 @@ run: build  layers ## Run the service
 
 .PHONY: shell
 shell: build ## Run in shell in service container
-	docker-compose -f docker-compose.yml run -v $$PWD/src:/code toy-manifest-service sh
+	docker-compose -f docker-compose-test.yml run --volume=$$PWD/src:/build/src --volume=$$PWD/tests:/build/tests toy-manifest-service-tester sh
 
 .PHONY: test
 test: builder ## Test the code using pytest
-	docker-compose -f docker-compose-test.yml run --volume=$$PWD:/build toy-manifest-service-tester sh -c "pipenv install --dev; pipenv run pytest"
+	docker-compose -f docker-compose-test.yml run --volume=$$PWD/src:/build/src --volume=$$PWD/tests:/build/tests toy-manifest-service-tester
 	docker-compose -f docker-compose-test.yml rm -v -f -s
 
 
