@@ -201,12 +201,33 @@ async def get_manifest(request: web.Request) -> web.Response:
 
 @routes.get("/layer/{layer_id}")
 async def get_layer(request: web.Request) -> web.Response:
-    request.match_info["layer_id"]
+    layer_id = request.match_info["layer_id"]
 
-    response = web.json_response([])
+    pool = request.app['conn_pool']
+    async with pool.acquire() as con:
+        stmt = await con.prepare(
+            '''SELECT
+        annotations,
+        digest,
+        media_type,
+        layer_order,
+        layer_size,
+        urls,
+        manifest_config_digest,
+        manifest_config_media_type,
+        manifest_config_size,
+        manifest_media_type,
+        manifest_schema_version
+        FROM manifest_layers
+        WHERE digest = $1
+        '''
+        )
+        layer = await stmt.fetchval(layer_id)
+        if layer:
+            return web.json_response({"layer": layer})
+            # response.headers["Content-Type"] = "application/vnd.oci.image.layer.v1.tar+gzip"
 
-    response.headers["Content-Type"] = "application/vnd.oci.image.layer.v1.tar+gzip"
-    return response
+    return web.json_response({"message": f"Layer for {layer_id} not found"}, status=404)
 
 
 @routes.post("/layer/{layer_id}")
@@ -242,13 +263,14 @@ async def post_layer(request: web.Request) -> web.Response:
 # Typical Kubernetes/Open
 # See https://kubernetes.io/docs/reference/using-api/health-checks/ for details
 @routes.get("/livez")
-async def health(request: web.Request) -> web.Response:
+async def livez(request: web.Request) -> web.Response:
     return web.Response()
 
 
 # See https://kubernetes.io/docs/reference/using-api/health-checks/ for details
 @routes.get("/readyz")
-async def livez(request: web.Request) -> web.Response:
+async def readyz(request: web.Request) -> web.Response:
     pool = request.app['conn_pool']
-    await pool.fetch('SELECT count(*) from manifest_layers;')
+    is_ready = await pool.fetch("SELECT ts, digest FROM manifest_layers where FALSE")
+    log.debug(f"Toy manifest service is ready {is_ready}")
     return web.Response()
