@@ -36,7 +36,7 @@ test: builder ## Test the code using pytest
 sqitch: ## Setup sqitch developer environment
 	docker pull sqitch/sqitch:1.1.0
 	curl -L https://git.io/JJKCn -o sqitch && chmod +x sqitch
-	docker run -d --rm -p 5432:5432 -e POSTGRES_USER=manifests -e POSTGRES_PASSWORD=oci_comp-123 postgres:13
+	docker run -d --name sqitch-test-db -p 5432:5432 -e POSTGRES_USER=manifests -e POSTGRES_PASSWORD=oci_comp-123 postgres:13
 	./sqitch target -v
 	./sqitch status toy_manifest_db_test
 	./sqitch deploy toy_manifest_db_test
@@ -59,3 +59,5 @@ clean: ## Clean build directories and local docker artifacts
 	docker-compose -f docker-compose-test.yml rm -f -v -s
 	docker rmi -f toy-manifest-service-builder:latest
 	docker rmi -f toy-manifest-service:latest
+	docker rmi -f toy-manifest-service-db:latest
+	docker rm -f -v sqitch-test-db
