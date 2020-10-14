@@ -1,10 +1,6 @@
 -- Verify flipr:manifesttable on pg
 
-BEGIN;
-
-DO $$
-BEGIN
-   ASSERT (SELECT
+SELECT
      annotations,
      digest,
      media_type,
@@ -18,7 +14,4 @@ BEGIN
      manifest_media_type,
      manifest_schema_version
   FROM manifest_layers
- WHERE FALSE;)
-END $$;
-
-ROLLBACK;
+WHERE FALSE;
