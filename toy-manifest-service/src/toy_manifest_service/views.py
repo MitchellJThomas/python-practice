@@ -170,14 +170,31 @@ async def post_manifest(request: web.Request) -> web.Response:
 
 @routes.get("/manifest/{manifest_id}")
 async def get_manifest(request: web.Request) -> web.Response:
-    global manifests
     id = request.match_info["manifest_id"]
-
     log.info(f"Getting manifest for {id}")
 
-    manifest = manifests.get(id)
-    if manifest:
-        return web.json_response({"manifest": manifest})
+    pool = request.app['conn_pool']
+    async with pool.acquire() as con:
+        stmt = await con.prepare(
+            '''SELECT
+        annotations,
+        digest,
+        media_type,
+        layer_order,
+        layer_size,
+        urls,
+        manifest_config_digest,
+        manifest_config_media_type,
+        manifest_config_size,
+        manifest_media_type,
+        manifest_schema_version
+        FROM manifest_layers
+        WHERE manifest_config_digest = $1
+        '''
+        )
+        manifest = await stmt.fetchval(id)
+        if manifest:
+            return web.json_response({"manifest": manifest})
 
     return web.json_response({"message": f"Manifest for {id} not found"}, status=404)
 
@@ -233,5 +250,5 @@ async def health(request: web.Request) -> web.Response:
 @routes.get("/readyz")
 async def livez(request: web.Request) -> web.Response:
     pool = request.app['conn_pool']
-    await pool.fetch('SELECT 1')
+    await pool.fetch('SELECT count(*) from manifest_layers;')
     return web.Response()
