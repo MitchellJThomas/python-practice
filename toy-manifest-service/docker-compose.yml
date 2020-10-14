@@ -22,11 +22,13 @@ services:
       - "db"
     user: 2000:2000
   db:
-    image: postgres:13
+    image: toy-manifest-service-db
+    build:
+      dockerfile: Dockerfile-db
+      context: .
     restart: always
     environment:
       POSTGRES_PASSWORD: oci_comp-123
-      POSTGRES_DB: manifests
       POSTGRES_USER: manifests
     volumes:
       - db_data:/var/lib/postgresql/data
