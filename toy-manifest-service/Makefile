@@ -29,13 +29,17 @@ shell: build ## Run in shell in service container
 .PHONY: test
 test: builder ## Test the code using pytest
 	docker-compose -f docker-compose-test.yml run --volume=$$PWD:/build toy-manifest-service-tester sh -c "pipenv install --dev; pipenv run pytest"
-	docker-compose -f docker-compose-test.yml rm -v -f -s 
+	docker-compose -f docker-compose-test.yml rm -v -f -s
 
 
 .PHONY: sqitch
-sqitch:
-	docker pull sqitch/sqitch
+sqitch: ## Setup sqitch developer environment
+	docker pull sqitch/sqitch:1.1.0
 	curl -L https://git.io/JJKCn -o sqitch && chmod +x sqitch
+	docker run -d --rm -p 5432:5432 -e POSTGRES_USER=manifests -e POSTGRES_PASSWORD=oci_comp-123 postgres:13
+	./sqitch target -v
+	./sqitch status toy_manifest_db_test
+	./sqitch deploy toy_manifest_db_test
 
 .PHONY: build-db
 build-db: ## Build the postgres database image with sqitch init script
