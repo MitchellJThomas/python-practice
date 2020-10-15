@@ -82,7 +82,7 @@ def create_partition_table_statements(num_weeks):
 # print(create_manifest_layers_statement())
 async def conn_pool(app):
     app.logger.info("Initializing Postgres connection pool")
-    app['conn_pool'] = await asyncpg.create_pool(command_timeout=60)
+    app["conn_pool"] = await asyncpg.create_pool(command_timeout=60)
     yield
     app.logger.info("Closing Postgres connection pool")
-    await app['conn_pool'].close()
+    await app["conn_pool"].close()
