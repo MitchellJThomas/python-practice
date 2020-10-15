@@ -118,8 +118,8 @@ async def test_manifest_validation_bad_schema_version():
 
 
 async def test_health_endpoints(cli_with_db):
-    resp = await cli_with_db.get('/livez')
+    resp = await cli_with_db.get("/livez")
     assert resp.status == 200
 
-    resp = await cli_with_db.get('/readyz')
+    resp = await cli_with_db.get("/readyz")
     assert resp.status == 200
