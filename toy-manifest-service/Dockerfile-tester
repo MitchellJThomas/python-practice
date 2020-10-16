@@ -1,0 +1,13 @@
+FROM toy-manifest-service-builder:latest
+
+ENV PATH /build/.venv/bin:$PATH
+
+WORKDIR /build
+RUN PIPENV_VENV_IN_PROJECT=1 \
+    pipenv install --dev
+
+COPY .env .
+
+EXPOSE 4000
+
+CMD ["pipenv", "run", "pytest --log_cli"]

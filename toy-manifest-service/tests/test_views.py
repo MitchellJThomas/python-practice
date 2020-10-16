@@ -1,7 +1,7 @@
-import json
+import logging
 
 import pytest
-from aiohttp import web
+from aiohttp import MultipartWriter, web
 
 from toy_manifest_service import schema, views
 from toy_manifest_service.views import OCIContentDescriptor, OCIManifest, build_manifest
@@ -22,7 +22,8 @@ def cli_with_db(loop, aiohttp_client, monkeypatch):
     return loop.run_until_complete(aiohttp_client(app))
 
 
-async def test_manifest_roundtrip(cli):
+async def test_manifest_roundtrip(cli_with_db, caplog):
+    caplog.set_level(logging.INFO)
     manifest: views.OCIManifest = {
         "schemaVersion": 2,
         "config": {
@@ -39,8 +40,12 @@ async def test_manifest_roundtrip(cli):
         ],
         "annotations": {"com.example.key1": "value1", "com.example.key2": "value2"},
     }
-    resp = await cli.post("/manifest", data=json.dumps(manifest))
-    assert resp.status == 200
+
+    with MultipartWriter("mixed") as mpwriter:
+        mpwriter.append_json(manifest)
+        resp = await cli_with_db.post("/manifest", data=mpwriter)
+
+    assert resp.status == 200, f"Error message {await resp.text()}"
     message = await resp.json()
     assert message["manifest"] == manifest
 

@@ -1,4 +1,5 @@
 import hashlib
+import json
 import logging
 import os
 import typing
@@ -6,7 +7,7 @@ import urllib.parse as url
 from typing import Mapping, Optional, Sequence, Set, Tuple, TypedDict
 
 import aiofiles
-from aiohttp import web
+from aiohttp import hdrs, web
 
 log = logging.getLogger(__name__)
 
@@ -152,20 +153,108 @@ async def publish_options(request: web.Request) -> web.Response:
 
 @routes.post("/manifest")
 async def post_manifest(request: web.Request) -> web.Response:
-    manifest_json = await request.json()
-    (manifest, error) = build_manifest(manifest_json)
-    if manifest:
-        log.info(f"Posted manifest {manifest}")
-        config = manifest["config"]
-        digest = config["digest"]
 
-        # Issue: mypy reports Unsupported target for indexed assignment ("Mapping[str, OCIManifest]")
-        # However tests work. Need to figure out what mypy is unhappy with
-        manifests[digest] = manifest  # type: ignore
+    content_type = request.content_type
+    expected_type = "multipart/mixed"
+    if content_type != expected_type:
+        return web.json_response(
+            {"message": f"Expecting {expected_type} not {content_type}"}, status=400
+        )
 
-        return web.json_response({"manifest": manifest})
+    reader = await request.multipart()
+    pool = request.app["conn_pool"]
+    async with pool.acquire() as con:
+        async with con.transaction():
 
-    return web.json_response({"error": error, "manifest": manifest}, status=400)
+            while part := await reader.next():
+                content_type = part.headers[hdrs.CONTENT_TYPE]
+
+                if content_type == "application/json":
+                    manifest_json = await part.json()
+                    (manifest, error) = build_manifest(manifest_json)
+                    if manifest:
+                        log.info(f"Got manifest {manifest}")
+
+                        layer_order = 0
+                        manifest_config = manifest["config"]
+
+                        for layer in manifest["layers"]:
+                            annotations_json = json.dumps(
+                                {
+                                    "layer": layer.get("annotations", {}),
+                                    "manifest_config": manifest_config.get(
+                                        "annotations", {}
+                                    ),
+                                    "manifest": manifest.get("annotations", {}),
+                                }
+                            )
+                            urls_json = json.dumps(
+                                {
+                                    "layer": layer.get("urls", []),
+                                    "manifest_config_urls": manifest_config.get(
+                                        "urls", []
+                                    ),
+                                }
+                            )
+
+                            digest = layer["digest"]
+                            ts = await con.execute(
+                                """INSERT INTO manifest_layers(
+                            annotations,
+                            digest,
+                            media_type,
+                            layer_order,
+                            layer_size,
+                            urls,
+                            manifest_config_digest,
+                            manifest_config_media_type,
+                            manifest_config_size,
+                            manifest_media_type,
+                            manifest_schema_version) VALUES
+                            ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+                            RETURNING ts
+                            """,
+                                annotations_json,
+                                digest,
+                                layer["mediaType"],
+                                layer_order,
+                                layer["size"],
+                                urls_json,
+                                manifest_config["digest"],
+                                manifest_config["mediaType"],
+                                manifest_config["size"],
+                                manifest.get("mediaType", ""),
+                                manifest["schemaVersion"],
+                            )
+
+                            log.info(
+                                f"Inserted manifest_layer digest {digest} at timestamp {ts}"
+                            )
+                            layer_order += 1
+                    elif error:
+                        web.json_response(
+                            {"error": error, "manifest": manifest}, status=400
+                        )
+                elif content_type == "application/vnd.oci.image.layer.v1.tar+gzip":
+                    filename = part.filename
+
+                    log.info(
+                        f"Uploading layer type {content_type} filename {filename} field name {part.name}"
+                    )
+                    size = 0
+                    async with aiofiles.open(
+                        os.path.join("/layers", filename), mode="wb"
+                    ) as f:
+                        while chunk := await part.read_chunk(1048576):
+                            size += len(chunk)
+                            await f.write(chunk)
+                    log.info(f"Wrote {size} bytes to file {filename}")
+
+        return web.json_response({"message": f"Manifest posted with digest {digest}"})
+
+    return web.json_response(
+        {"message": f"Error posting manifest {request}"}, status=400
+    )
 
 
 @routes.get("/manifest/{manifest_id}")
@@ -173,10 +262,10 @@ async def get_manifest(request: web.Request) -> web.Response:
     id = request.match_info["manifest_id"]
     log.info(f"Getting manifest for {id}")
 
-    pool = request.app['conn_pool']
+    pool = request.app["conn_pool"]
     async with pool.acquire() as con:
         stmt = await con.prepare(
-            '''SELECT
+            """SELECT
         annotations,
         digest,
         media_type,
@@ -190,7 +279,7 @@ async def get_manifest(request: web.Request) -> web.Response:
         manifest_schema_version
         FROM manifest_layers
         WHERE manifest_config_digest = $1
-        '''
+        """
         )
         manifest = await stmt.fetchval(id)
         if manifest:
@@ -203,29 +292,10 @@ async def get_manifest(request: web.Request) -> web.Response:
 async def get_layer(request: web.Request) -> web.Response:
     layer_id = request.match_info["layer_id"]
 
-    pool = request.app['conn_pool']
-    async with pool.acquire() as con:
-        stmt = await con.prepare(
-            '''SELECT
-        annotations,
-        digest,
-        media_type,
-        layer_order,
-        layer_size,
-        urls,
-        manifest_config_digest,
-        manifest_config_media_type,
-        manifest_config_size,
-        manifest_media_type,
-        manifest_schema_version
-        FROM manifest_layers
-        WHERE digest = $1
-        '''
-        )
-        layer = await stmt.fetchval(layer_id)
-        if layer:
-            return web.json_response({"layer": layer})
-            # response.headers["Content-Type"] = "application/vnd.oci.image.layer.v1.tar+gzip"
+    if False:
+        response = web.json_response({"layer": layer_id})
+        response.headers["Content-Type"] = "application/vnd.oci.image.layer.v1.tar+gzip"
+        return response
 
     return web.json_response({"message": f"Layer for {layer_id} not found"}, status=404)
 
@@ -270,7 +340,7 @@ async def livez(request: web.Request) -> web.Response:
 # See https://kubernetes.io/docs/reference/using-api/health-checks/ for details
 @routes.get("/readyz")
 async def readyz(request: web.Request) -> web.Response:
-    pool = request.app['conn_pool']
+    pool = request.app["conn_pool"]
     is_ready = await pool.fetch("SELECT ts, digest FROM manifest_layers where FALSE")
     log.debug(f"Toy manifest service is ready {is_ready}")
     return web.Response()

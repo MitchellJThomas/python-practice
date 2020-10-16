@@ -15,6 +15,11 @@ builder: ## Build the developer image
 build: builder ## Build the service
 	docker-compose -f docker-compose.yml build
 
+.PHONY: build-db
+build-db: ## Test the postgres database migration with sqitch init script
+	./sqitch bundle
+	docker build -t toy-manifest-service-db -f Dockerfile-db .
+
 layers:
 	mkdir layers
 
@@ -27,10 +32,9 @@ shell: build ## Run in shell in service container
 	docker-compose -f docker-compose-test.yml run --volume=$$PWD/src:/build/src --volume=$$PWD/tests:/build/tests toy-manifest-service-tester sh
 
 .PHONY: test
-test: builder ## Test the code using pytest
+test: builder build-db ## Test the code using pytest
 	docker-compose -f docker-compose-test.yml run --volume=$$PWD/src:/build/src --volume=$$PWD/tests:/build/tests toy-manifest-service-tester
 	docker-compose -f docker-compose-test.yml rm -v -f -s
-
 
 .PHONY: sqitch
 sqitch: ## Setup sqitch developer environment
@@ -40,11 +44,6 @@ sqitch: ## Setup sqitch developer environment
 	./sqitch target -v
 	./sqitch status toy_manifest_db_test
 	./sqitch deploy toy_manifest_db_test
-
-.PHONY: build-db
-build-db: ## Build the postgres database image with sqitch init script
-	./sqitch bundle
-	docker build -t toy-manifest-service-db -f Dockerfile-db .
 
 .PHONY: testdb
 testdb:
