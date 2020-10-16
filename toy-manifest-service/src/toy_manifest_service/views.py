@@ -1,142 +1,15 @@
 import hashlib
-import json
 import logging
 import os
-import typing
-import urllib.parse as url
-from typing import Mapping, Optional, Sequence, Set, Tuple, TypedDict
 
 import aiofiles
 from aiohttp import hdrs, web
 
+from .schema import build_manifest, insert_manifest
+
 log = logging.getLogger(__name__)
 
 routes = web.RouteTableDef()
-
-OCIContentDescriptor = TypedDict(
-    "OCIContentDescriptor",
-    {
-        #################
-        # Media type values MUST comply with RFC 6838,
-        # including the naming requirements in its section
-        # 4.2. including OCI types found in mime.types taken from
-        # https://github.com/opencontainers/image-spec/blob/master/descriptor.md
-        "mediaType": str,
-        #################
-        # Digest values following the form
-        # https://github.com/opencontainers/image-spec/blob/master/descriptor.md#digests
-        # digest                ::= algorithm ":" encoded
-        # algorithm ::= algorithm-component
-        #   (algorithm-separator algorithm-component)*
-        # algorithm-component   ::= [a-z0-9]+
-        # algorithm-separator   ::= [+._-]
-        # encoded               ::= [a-zA-Z0-9=_-]+
-        # Registered Algorithms are "sha512" and "sha256"
-        "digest": str,
-        #################
-        # The size property the size, in bytes, of the raw
-        # content. This property exists so that a client will have an
-        # expected size for the content before processing. If the
-        # length of the retrieved content does not match the specified
-        # length, the content SHOULD NOT be trusted.  Note: Size
-        # should accomodate int64. Python3 int's can indeed do that
-        # e.g. int.bit_length(pow(2, 63))
-        "size": int,
-        #################
-        # URLs specifies a list of URIs from which this
-        # object MAY be downloaded. Each entry MUST conform to RFC
-        # 3986. Entries SHOULD use the http and https schemes, as
-        # defined in RFC 7230.
-        "urls": Optional[Set[url.ParseResult]],
-        #################
-        # Annotations contains arbitrary metadata for this descriptor.
-        # https://github.com/opencontainers/image-spec/blob/master/annotations.md#rules
-        "annotations": Optional[Mapping[str, str]],
-    },
-)
-
-OCIManifest = TypedDict(
-    "OCIManifest",
-    {
-        #################
-        # Schema version specifies the image manifest schema
-        # version. For this version of the specification, this MUST be
-        # 2 to ensure backward compatibility with older versions of
-        # Docker. The value of this field will not change. This field
-        # MAY be removed in a future version of the
-        # specification. Taken from
-        # https://github.com/opencontainers/image-spec/blob/master/manifest.md
-        "schemaVersion": int,
-        #################
-        # Media type reserved for use to maintain
-        # compatibility. When used, this field contains the media type
-        # of this document, which differs from the descriptor use of
-        # mediaType.
-        "mediaType": Optional[str],
-        #################
-        # The configuration object for a container, by digest.
-        "config": OCIContentDescriptor,
-        #################
-        # The layers of the image. A final filesystem layout MUST
-        # match the result of applying the layers to an empty
-        # directory. The ownership, mode, and other attributes of the
-        # initial empty directory are unspecified.
-        "layers": Sequence[OCIContentDescriptor],
-        #################
-        # Arbitrary metadata for the image manifest.
-        "annotations": Optional[Mapping[str, str]],
-        #################
-    },
-)
-
-
-def required_keys(type_hint):
-    """Return those keys which are required for a particular typing hint"""
-    return [
-        k
-        for (k, v) in typing.get_type_hints(type_hint).items()
-        if type(None) not in typing.get_args(v)
-    ]
-
-
-def build_manifest(
-    manifest: Mapping[str, str]
-) -> Tuple[Optional[OCIManifest], Optional[Exception]]:
-    """Verify and build a manifest typed dictionary from a Mapping e.g. something parsed by json.loads
-    This takes the Python typing hints and applies them (partially) at runtime"""
-
-    # Verify top level manifest has the required keys
-    for k in required_keys(OCIManifest):
-        if k not in manifest:
-            return (None, Exception(f"Manifest {manifest} must contain key {k}"))
-
-    # Verify config in manifest has required keys
-    required_descriptor_keys = required_keys(OCIContentDescriptor)
-    config = manifest["config"]
-    for k in required_descriptor_keys:
-        if k not in config:
-            return (None, Exception(f"Manifest {manifest} config must contain key {k}"))
-
-    # Verify layers in manifest have the required keys
-    for k in required_descriptor_keys:
-        for layer in manifest["layers"]:
-            if k not in layer:
-                return (
-                    None,
-                    Exception(
-                        f"Manifest {manifest} layer {layer} must contain key {k}"
-                    ),
-                )
-
-    # Verify values in the manifest
-    if manifest["schemaVersion"] != 2:
-        return (None, Exception(f"Manifest {manifest} schemaVersion must be 2"))
-
-    return (typing.cast(OCIManifest, manifest), None)
-
-
-# mapping of string in the form of a digest to manifests
-manifests: Mapping[str, OCIManifest] = {}
 
 
 @routes.route("OPTIONS", "/manifest")
@@ -163,78 +36,30 @@ async def post_manifest(request: web.Request) -> web.Response:
 
     reader = await request.multipart()
     pool = request.app["conn_pool"]
-    async with pool.acquire() as con:
-        async with con.transaction():
-
+    manifest_digest = ""
+    timestamp = ""
+    async with pool.acquire() as conn:
+        async with conn.transaction():
             while part := await reader.next():
                 content_type = part.headers[hdrs.CONTENT_TYPE]
 
                 if content_type == "application/json":
                     manifest_json = await part.json()
                     (manifest, error) = build_manifest(manifest_json)
-                    if manifest:
-                        log.info(f"Got manifest {manifest}")
-
-                        layer_order = 0
-                        manifest_config = manifest["config"]
-
-                        for layer in manifest["layers"]:
-                            annotations_json = json.dumps(
-                                {
-                                    "layer": layer.get("annotations", {}),
-                                    "manifest_config": manifest_config.get(
-                                        "annotations", {}
-                                    ),
-                                    "manifest": manifest.get("annotations", {}),
-                                }
-                            )
-                            urls_json = json.dumps(
-                                {
-                                    "layer": layer.get("urls", []),
-                                    "manifest_config_urls": manifest_config.get(
-                                        "urls", []
-                                    ),
-                                }
-                            )
-
-                            digest = layer["digest"]
-                            ts = await con.execute(
-                                """INSERT INTO manifest_layers(
-                            annotations,
-                            digest,
-                            media_type,
-                            layer_order,
-                            layer_size,
-                            urls,
-                            manifest_config_digest,
-                            manifest_config_media_type,
-                            manifest_config_size,
-                            manifest_media_type,
-                            manifest_schema_version) VALUES
-                            ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-                            RETURNING ts
-                            """,
-                                annotations_json,
-                                digest,
-                                layer["mediaType"],
-                                layer_order,
-                                layer["size"],
-                                urls_json,
-                                manifest_config["digest"],
-                                manifest_config["mediaType"],
-                                manifest_config["size"],
-                                manifest.get("mediaType", ""),
-                                manifest["schemaVersion"],
-                            )
-
-                            log.info(
-                                f"Inserted manifest_layer digest {digest} at timestamp {ts}"
-                            )
-                            layer_order += 1
-                    elif error:
+                    if error:
                         web.json_response(
                             {"error": error, "manifest": manifest}, status=400
                         )
+
+                    if manifest:
+                        log.info(f"Got manifest {manifest}")
+                        manifest_digest = manifest["config"]["digest"]
+                        (timestamp, error) = await insert_manifest(conn, manifest)
+                        if error:
+                            web.json_response(
+                                {"error": error, "manifest": manifest}, status=400
+                            )
+
                 elif content_type == "application/vnd.oci.image.layer.v1.tar+gzip":
                     filename = part.filename
 
@@ -250,10 +75,12 @@ async def post_manifest(request: web.Request) -> web.Response:
                             await f.write(chunk)
                     log.info(f"Wrote {size} bytes to file {filename}")
 
-        return web.json_response({"message": f"Manifest posted with digest {digest}"})
-
     return web.json_response(
-        {"message": f"Error posting manifest {request}"}, status=400
+        {
+            "message": "Manifest successfully posted",
+            "manifest_digest": manifest_digest,
+            "timestamp": timestamp,
+        }
     )
 
 

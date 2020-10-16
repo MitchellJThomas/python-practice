@@ -4,7 +4,11 @@ import pytest
 from aiohttp import MultipartWriter, web
 
 from toy_manifest_service import schema, views
-from toy_manifest_service.views import OCIContentDescriptor, OCIManifest, build_manifest
+from toy_manifest_service.schema import (
+    OCIContentDescriptor,
+    OCIManifest,
+    build_manifest,
+)
 
 
 @pytest.fixture
@@ -47,9 +51,9 @@ async def test_manifest_roundtrip(cli_with_db, caplog):
 
     assert resp.status == 200, f"Error message {await resp.text()}"
     message = await resp.json()
-    assert message["manifest"] == manifest
+    assert message.get("manifest_digest") == manifest["config"]["digest"]
 
-    resp = await cli.get(f'/manifest/{manifest["config"]["digest"]}')
+    resp = await cli_with_db.get(f'/manifest/{manifest["config"]["digest"]}')
     assert resp.status == 200
     get_manifest = await resp.json()
     assert get_manifest["manifest"] == manifest
