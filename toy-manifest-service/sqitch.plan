@@ -4,3 +4,5 @@
 
 manifesttable 2020-10-09T01:07:51Z Mitchell Thomas <mitch.thomas@gmail.com> # Add manifest table
 @v1.0.0 2020-10-14T04:48:01Z Mitchell Thomas <mitch.thomas@gmail.com> # Tag v1.0.0 Initial schema definition.
+
+partitions_0 [manifesttable] 2020-10-16T05:32:02Z Mitchell Thomas <mitch.thomas@gmail.com> # Create 12 weeks of partitions

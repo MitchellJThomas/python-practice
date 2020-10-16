@@ -15,12 +15,8 @@ CREATE TABLE manifest_layers (
   manifest_config_media_type text not null,
   manifest_config_size       bigint not null,
   manifest_media_type        text,
-  manifest_schema_version    smallint not null,
-
-  primary key (ts, digest)
-
+  manifest_schema_version    smallint not null
 )
-PARTITION BY RANGE (ts, digest);
-
+PARTITION BY RANGE (ts);
 
 COMMIT;
