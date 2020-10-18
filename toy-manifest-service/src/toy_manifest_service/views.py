@@ -5,7 +5,7 @@ import os
 import aiofiles
 from aiohttp import hdrs, web
 
-from .schema import build_manifest, insert_manifest
+from .schema import build_manifest, insert_manifest, schema_ready, select_manifest
 
 log = logging.getLogger(__name__)
 
@@ -90,29 +90,18 @@ async def get_manifest(request: web.Request) -> web.Response:
     log.info(f"Getting manifest for {id}")
 
     pool = request.app["conn_pool"]
-    async with pool.acquire() as con:
-        stmt = await con.prepare(
-            """SELECT
-        annotations,
-        digest,
-        media_type,
-        layer_order,
-        layer_size,
-        urls,
-        manifest_config_digest,
-        manifest_config_media_type,
-        manifest_config_size,
-        manifest_media_type,
-        manifest_schema_version
-        FROM manifest_layers
-        WHERE manifest_config_digest = $1
-        """
-        )
-        manifest = await stmt.fetchval(id)
+    async with pool.acquire() as conn:
+        (manifest, error) = await select_manifest(conn, id)
         if manifest:
             return web.json_response({"manifest": manifest})
-
-    return web.json_response({"message": f"Manifest for {id} not found"}, status=404)
+        return web.json_response(
+            {
+                "message": f"Manifest for {id} not found",
+                "manifest_id": id,
+                "error": error,
+            },
+            status=404,
+        )
 
 
 @routes.get("/layer/{layer_id}")
@@ -168,6 +157,7 @@ async def livez(request: web.Request) -> web.Response:
 @routes.get("/readyz")
 async def readyz(request: web.Request) -> web.Response:
     pool = request.app["conn_pool"]
-    is_ready = await pool.fetch("SELECT ts, digest FROM manifest_layers where FALSE")
-    log.debug(f"Toy manifest service is ready {is_ready}")
-    return web.Response()
+    if is_ready := await schema_ready(pool):
+        log.debug(f"Toy manifest service is ready {is_ready}")
+        return web.Response()
+    return web.Response(status=503)

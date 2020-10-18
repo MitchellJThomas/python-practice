@@ -1,5 +1,7 @@
+import asyncio
 import logging
 
+import asyncpg
 import pytest
 from aiohttp import MultipartWriter, web
 
@@ -10,6 +12,8 @@ from toy_manifest_service.schema import (
     build_manifest,
 )
 
+log = logging.getLogger(__name__)
+
 
 @pytest.fixture
 def cli(loop, aiohttp_client, monkeypatch):
@@ -18,8 +22,24 @@ def cli(loop, aiohttp_client, monkeypatch):
     return loop.run_until_complete(aiohttp_client(app))
 
 
+async def wait_for_db():
+    while True:
+        try:
+            async with asyncpg.create_pool(command_timeout=60) as pool:
+                while not await schema.schema_ready(pool):
+                    log.info("Waiting for database")
+                    await asyncio.sleep(1)
+                return True
+        except Exception as e:
+            log.info(f"While waiting for databse caught exception {e}")
+            await asyncio.sleep(1)
+
+
 @pytest.fixture
-def cli_with_db(loop, aiohttp_client, monkeypatch):
+def cli_with_db(loop, aiohttp_client, caplog):
+    caplog.set_level(logging.INFO)
+    log.info("Waiting for database")
+    loop.run_until_complete(wait_for_db())
     app = web.Application()
     app.add_routes(views.routes)
     app.cleanup_ctx.append(schema.conn_pool)
@@ -28,7 +48,7 @@ def cli_with_db(loop, aiohttp_client, monkeypatch):
 
 async def test_manifest_roundtrip(cli_with_db, caplog):
     caplog.set_level(logging.INFO)
-    manifest: views.OCIManifest = {
+    manifest: OCIManifest = {
         "schemaVersion": 2,
         "config": {
             "mediaType": "application/vnd.oci.image.config.v1+json",
@@ -126,7 +146,8 @@ async def test_manifest_validation_bad_schema_version():
     assert built_manifest is None
 
 
-async def test_health_endpoints(cli_with_db):
+async def test_health_endpoints(cli_with_db, caplog):
+    caplog.set_level(logging.INFO)
     resp = await cli_with_db.get("/livez")
     assert resp.status == 200
 
