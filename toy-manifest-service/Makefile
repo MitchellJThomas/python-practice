@@ -18,7 +18,7 @@ build: builder ## Build the service
 .PHONY: build-db
 build-db: ## Test the postgres database migration with sqitch init script
 	./sqitch bundle
-	docker build -t toy-manifest-service-db -f Dockerfile-db .
+	docker build -f Dockerfile-db -t toy-manifest-service-db:latest .
 
 layers:
 	mkdir layers
@@ -36,14 +36,16 @@ test: builder build-db ## Test the code using pytest
 	docker-compose -f docker-compose-test.yml run --volume=$$PWD/src:/build/src --volume=$$PWD/tests:/build/tests toy-manifest-service-tester
 	docker-compose -f docker-compose-test.yml rm -v -f -s
 
-.PHONY: sqitch
-sqitch: ## Setup sqitch developer environment
-	docker pull sqitch/sqitch:1.1.0
+sqitch:
 	curl -L https://git.io/JJKCn -o sqitch && chmod +x sqitch
+
+.PHONY: sqitch-dev
+sqitch-dev: sqitch ## Setup sqitch development environment
+	docker pull sqitch/sqitch:1.1.0
 	docker run -d --name sqitch-test-db -p 5432:5432 -e POSTGRES_USER=manifests -e POSTGRES_PASSWORD=oci_comp-123 postgres:13
 	./sqitch target -v
-	./sqitch status toy_manifest_db_test
 	./sqitch deploy toy_manifest_db_test
+	./sqitch status toy_manifest_db_test
 
 .PHONY: testdb
 testdb:
