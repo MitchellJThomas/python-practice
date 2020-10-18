@@ -10,4 +10,4 @@ COPY .env .
 
 EXPOSE 4000
 
-CMD ["pipenv", "run", "pytest --log_cli"]
+CMD ["pipenv", "run", "pytest"]
