@@ -11,6 +11,7 @@ services:
     environment:
       PGPASSWORD: oci_comp-123
       PGUSER: manifests
+      PGDATABASE: manifests
       PGHOST: db
     volumes:
       - type: bind
@@ -30,6 +31,8 @@ services:
     environment:
       POSTGRES_PASSWORD: oci_comp-123
       POSTGRES_USER: manifests
+      # note: a database is created using the username
+      # See https://hub.docker.com/_/postgres/
     volumes:
       - db_data:/var/lib/postgresql/data
 volumes:
