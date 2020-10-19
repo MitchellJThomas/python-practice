@@ -33,6 +33,7 @@ shell: build ## Run in shell in service container
 
 .PHONY: test
 test: builder build-db ## Test the code using pytest
+	docker-compose -f docker-compose-test.yml build
 	docker-compose -f docker-compose-test.yml run --volume=$$PWD/src:/build/src --volume=$$PWD/tests:/build/tests toy-manifest-service-tester
 	docker-compose -f docker-compose-test.yml rm -v -f -s
 
@@ -59,6 +60,9 @@ clean: ## Clean build directories and local docker artifacts
 	docker-compose -f docker-compose.yml rm -f -v -s
 	docker-compose -f docker-compose-test.yml rm -f -v -s
 	docker rmi -f toy-manifest-service-builder:latest
-	docker rmi -f toy-manifest-service:latest
 	docker rmi -f toy-manifest-service-db:latest
+	docker rmi -f toy-manifest-service-tester:latest
+	docker rmi -f toy-manifest-service:latest
+	docker rmi sqitch/sqitch:latest
+	docker rmi sqitch/sqitch:1.1.0
 	docker rm -f -v sqitch-test-db
