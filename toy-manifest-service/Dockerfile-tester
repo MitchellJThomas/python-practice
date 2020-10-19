@@ -10,4 +10,4 @@ COPY .env .
 
 EXPOSE 4000
 
-CMD ["pipenv", "run", "pytest"]
+CMD ["pipenv", "run", "pytest", "-vv"]

@@ -319,12 +319,12 @@ async def select_manifest(
                     config=OCIContentDescriptor(
                         mediaType=layer["manifest_config_media_type"],
                         digest=layer["manifest_config_digest"],
-                        size=layer["layer_size"],
-                        urls=urls["manifest_config"],
-                        annotations=annotations["manifest_config"],
+                        size=layer["manifest_config_size"],
+                        urls=urls.get("manifest_config"),
+                        annotations=annotations.get("manifest_config"),
                     ),
                     layers=layer_list,
-                    annotations=annotations["manifest"],
+                    annotations=annotations.get("manifest"),
                 )
             else:
                 layer_list.append(convert_layer(layer, urls, annotations))
@@ -339,13 +339,14 @@ async def select_manifest(
 def convert_layer(
     layer: Mapping, urls: Mapping, annotations: Mapping
 ) -> OCIContentDescriptor:
-    return OCIContentDescriptor(
+    descriptor = OCIContentDescriptor(
         mediaType=layer["media_type"],
         digest=layer["digest"],
         size=layer["layer_size"],
-        urls=urls["layer"],
-        annotations=annotations["layer"],
+        urls=urls.get("layer"),
+        annotations=annotations.get("layer"),
     )
+    return descriptor
 
 
 async def schema_ready(pool: asyncpg.pool.Pool) -> bool:
