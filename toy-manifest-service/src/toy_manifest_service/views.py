@@ -63,11 +63,11 @@ async def post_manifest(request: web.Request) -> web.Response:
                         if error:
                             return web.json_response(
                                 {
-                                    "message": "Error inserting manifest",
+                                    "message": "Unable to insert or updating manifest",
                                     "error": str(error),
                                     "manifest": manifest,
                                 },
-                                status=500,
+                                status=400,
                             )
 
                 elif content_type == "application/vnd.oci.image.layer.v1.tar+gzip":

@@ -130,9 +130,11 @@ async def test_multiple_posts(cli_with_db, caplog):
         mpwriter.append_json(manifest)
         resp = await cli_with_db.post("/manifest", data=mpwriter)
 
-    assert resp.status == 200, f"Error message {await resp.text()}"
+    assert resp.status == 400
     message = await resp.json()
-    assert message.get("manifest_digest") == manifest["config"]["digest"]
+    assert message["manifest"] == manifest
+    assert message["message"]
+    assert message["error"]
 
 
 async def test_manifest_validation_good_manifest():
