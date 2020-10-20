@@ -28,10 +28,28 @@ The minimum work required to satisfy
  
    - Explain your database schema choices in either comments or prose.
  
-   - Explain how you would change the schema after it has been defined,
-    e.g add/remove/change columns with/without downtime to the service.
- 
-   - Use a migration script for each phase of the migration.
+   - Explain how you would change the schema after it has been
+     defined, e.g add/remove/change columns with/without downtime to
+     the service.
+
+     Considerations:
+     - Ensure you have a fresh archive and you can rely on it (via
+       testing)
+     - Ensure schema changes have the appropriate transactional isolation
+     - New columns with no dependency on existing data are typically
+       easy with some caviates (valid column names, database resources etc.)
+     - To change a column name, introduce a new column and
+       utilize triggers or stored proceedures to keep both columns "live"
+       while the roll-out of new code is in progess.  Once the
+       roll-out is completed then the trigger and the previous name
+       can be removed.
+     - To remove columns, assuming the data present in the column
+       isn't required for subsequent code, the removal can occur once
+       the the new roll-out has happened
+
+   - Use a migration script for each phase of the migration. In this
+     implementation I use https://github.com/sqitchers/sqitch to
+     manage the schema changes.
 
 ### Stretch
 
@@ -90,6 +108,7 @@ Run `make clean`
 
 ## Notes
 
-Interesting links:
-    - https://github.com/vsoch/oci-python
-    - https://jessewarden.com/2020/03/write-unbreakable-python.html
+Interesting links
+
+1. https://github.com/vsoch/oci-python
+1. https://jessewarden.com/2020/03/write-unbreakable-python.html

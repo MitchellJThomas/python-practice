@@ -1,0 +1,38 @@
+FROM debian:stable-slim AS sqitch-build
+
+# Install system dependencies.
+WORKDIR /work
+ARG VERSION="1.1.0"
+RUN mkdir -p /usr/share/man/man1 /usr/share/man/man7 \
+    && apt-get -qq update \
+    && apt-get -qq install build-essential perl curl libpq-dev  \
+    && curl -LO https://www.cpan.org/authors/id/D/DW/DWHEELER/App-Sqitch-v$VERSION.tar.gz \
+    && mkdir src \
+    && tar -zxf App-Sqitch-v$VERSION.tar.gz --strip-components 1 -C src
+
+# Install cpan and build dependencies.
+ENV PERL5LIB /work/local/lib/perl5
+RUN curl -sL --compressed https://git.io/cpm > cpm && chmod +x cpm \
+    && ./cpm install -L local --verbose --no-test ExtUtils::MakeMaker \
+    && ./cpm install -L local --verbose --no-test --with-recommends \
+        --with-configure --cpanfile src/dist/cpanfile
+
+# Build, test, bundle, prune.
+WORKDIR /work/src
+
+RUN perl Build.PL --quiet --install_base /app --etcdir /etc/sqitch \
+    --config installman1dir= --config installsiteman1dir= --config installman3dir= --config installsiteman3dir= --with postgres  \
+    && ./Build test && ./Build bundle \
+    && rm -rf /app/man \
+    && find /app -name '*.pod' | grep -v sqitch | xargs rm -rf
+
+
+FROM postgres:13
+
+RUN apt-get -qq update && apt-get -qq --no-install-recommends install libperl5.28 libpq5 postgresql-client
+
+COPY --from=sqitch-build /app .
+COPY --from=sqitch-build /etc/sqitch /etc/sqitch/
+COPY src/toy-manifest-init.sh /docker-entrypoint-initdb.d/
+COPY bundle /sqitch/bundle
+
