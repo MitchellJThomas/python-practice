@@ -1,8 +1,8 @@
 -- Revert toy-manifest-service:partitions_0 from pg
 
 BEGIN;
-
-DROP INDEX manifest_lahyers_digest_idx;
+DROP INDEX manifest_config_digest_idx;
+DROP INDEX digest_idx;
 DROP TABLE manifest_layers_42_2020;
 DROP TABLE manifest_layers_43_2020;
 DROP TABLE manifest_layers_44_2020;
