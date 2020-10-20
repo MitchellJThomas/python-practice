@@ -66,13 +66,12 @@ def write_file(path: str, data: str) -> Optional[str]:
     return None
 
 
-i = 0
-
-
 def p(i: int, thing: Any):
     print(f"{i} {thing}")
 
 
+# Manual tests
+print("\nmkdir and list_file tests")
 p(1, mkdir("/"))
 p(2, mkdir("/a"))
 p(3, list_files("/"))
@@ -84,7 +83,7 @@ p(8, list_files("/a/b/c"))
 p(9, list_files("/a/b/c/d"))
 
 # File tests
-print("\nFile tests")
+print("\nwrite_file get_file list_file tests")
 p(1, write_file("/a/b/c", "c-stuff"))
 p(2, write_file("/a/b/c/d/e", "e-stuff"))
 
