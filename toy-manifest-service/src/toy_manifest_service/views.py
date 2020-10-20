@@ -63,7 +63,7 @@ async def post_manifest(request: web.Request) -> web.Response:
                         if error:
                             return web.json_response(
                                 {
-                                    "message": "Unable to insert or updating manifest",
+                                    "message": "Unable to create manifest",
                                     "error": str(error),
                                     "manifest": manifest,
                                 },
