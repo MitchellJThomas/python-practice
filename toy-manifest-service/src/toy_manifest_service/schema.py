@@ -165,6 +165,10 @@ def create_manifest_layers_statement(num_weeks: int):
     partition_statements = "".join(
         [t for t in create_partition_table_statements(num_weeks)]
     )
+    alter_partition_statements = "".join(
+        [t for t in alter_partition_table_statements(num_weeks)]
+    )
+
     main_statement = """
 BEGIN;
 CREATE TABLE manifest_layers (
@@ -189,7 +193,12 @@ COMMIT;
 CREATE INDEX manifest_config_digest_idx on manifest_layers (manifest_config_digest);
 CREATE INDEX digest_idx on manifest_layers (digest);
     """
-    return main_statement + partition_statements + index_statements
+    return (
+        main_statement
+        + partition_statements
+        + index_statements
+        + alter_partition_statements
+    )
 
 
 def create_partition_table_statement(table_name, start_date):
@@ -208,12 +217,29 @@ CREATE INDEX {table_name}_{week}_{year}_digest_idx on {table_name}_{week}_{year}
     """
 
 
+def alter_partition_table_statement(table_name, start_date):
+    iso_cal = start_date.isocalendar()
+    year = iso_cal[0]
+    week = iso_cal[1]
+    return f"""
+ALTER TABLE {table_name}_{week}_{year} ADD PRIMARY KEY (digest, manifest_config_digest);
+    """
+
+
 def create_partition_table_statements(num_weeks: int) -> Sequence[str]:
     today = date.today()
     return [
         create_partition_table_statement(
             "manifest_layers", (today + timedelta(weeks=x))
         )
+        for x in range(num_weeks)
+    ]
+
+
+def alter_partition_table_statements(num_weeks: int) -> Sequence[str]:
+    today = date.today()
+    return [
+        alter_partition_table_statement("manifest_layers", (today + timedelta(weeks=x)))
         for x in range(num_weeks)
     ]
 
