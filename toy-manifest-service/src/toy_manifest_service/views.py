@@ -57,7 +57,7 @@ async def post_manifest(request: web.Request) -> web.Response:
                         (timestamp, error) = await insert_manifest(conn, manifest)
                         if error:
                             web.json_response(
-                                {"error": error, "manifest": manifest}, status=400
+                                {"error": str(error), "manifest": manifest}, status=400
                             )
 
                 elif content_type == "application/vnd.oci.image.layer.v1.tar+gzip":
