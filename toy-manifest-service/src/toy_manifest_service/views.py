@@ -47,8 +47,13 @@ async def post_manifest(request: web.Request) -> web.Response:
                     manifest_json = await part.json()
                     (manifest, error) = build_manifest(manifest_json)
                     if error:
-                        web.json_response(
-                            {"error": error, "manifest": manifest}, status=400
+                        return web.json_response(
+                            {
+                                "message": "Error validating manifest",
+                                "error": error,
+                                "manifest": manifest,
+                            },
+                            status=400,
                         )
 
                     if manifest:
@@ -56,8 +61,13 @@ async def post_manifest(request: web.Request) -> web.Response:
                         manifest_digest = manifest["config"]["digest"]
                         (timestamp, error) = await insert_manifest(conn, manifest)
                         if error:
-                            web.json_response(
-                                {"error": str(error), "manifest": manifest}, status=400
+                            return web.json_response(
+                                {
+                                    "message": "Error inserting manifest",
+                                    "error": str(error),
+                                    "manifest": manifest,
+                                },
+                                status=500,
                             )
 
                 elif content_type == "application/vnd.oci.image.layer.v1.tar+gzip":
@@ -94,13 +104,17 @@ async def get_manifest(request: web.Request) -> web.Response:
         (manifest, error) = await select_manifest(conn, id)
         if manifest:
             return web.json_response({"manifest": manifest})
+        if error:
+            return web.json_response(
+                {
+                    "message": f"Error getting manifest for {id}",
+                    "manifest_id": id,
+                    "error": str(error),
+                },
+                status=500,
+            )
         return web.json_response(
-            {
-                "message": f"Manifest for {id} not found",
-                "manifest_id": id,
-                "error": error,
-            },
-            status=404,
+            {"message": f"Manifest for {id} not found", "manifest_id": id}, status=404,
         )
 
 

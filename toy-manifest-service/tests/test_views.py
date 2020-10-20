@@ -63,10 +63,56 @@ async def test_manifest_roundtrip(cli_with_db, caplog):
                 size=32654,
                 digest="sha256:9834876dcfb05cb167a5c24953eba58c4ac89b1adf57f28f2f9d09af107ee8f0",
                 annotations={},
-                urls="https://bitbucket/file1.tar.gz",
+                urls=["https://bitbucket/file1.tar.gz"],
             ),
         ],
         "annotations": {"com.example.key1": "value1", "com.example.key2": "value2"},
+        "mediaType": "",
+    }
+
+    resp = await cli_with_db.get(f'/manifest/{manifest["config"]["digest"]}')
+    assert resp.status == 404
+    get_manifest = await resp.json()
+    assert get_manifest["manifest_id"] == manifest["config"]["digest"]
+    assert get_manifest["message"]
+
+    with MultipartWriter("mixed") as mpwriter:
+        mpwriter.append_json(manifest)
+        resp = await cli_with_db.post("/manifest", data=mpwriter)
+
+    assert resp.status == 200, f"Error message {await resp.text()}"
+    message = await resp.json()
+    assert message["message"]
+    assert message["timestamp"]
+    assert message["manifest_digest"] == manifest["config"]["digest"]
+
+    resp = await cli_with_db.get(f'/manifest/{manifest["config"]["digest"]}')
+    assert resp.status == 200
+    get_manifest = await resp.json()
+    assert get_manifest["manifest"] == manifest
+
+
+async def test_multiple_posts(cli_with_db, caplog):
+    caplog.set_level(logging.INFO)
+    manifest: OCIManifest = {
+        "schemaVersion": 2,
+        "config": OCIContentDescriptor(
+            mediaType="application/vnd.oci.image.config.v1+json",
+            size=5555,
+            digest="sha256:0002b2c507a0944348e0303114d8d93aaaa081732b86451d9bce1f432a537000",
+            annotations={},
+            urls=[],
+        ),
+        "layers": [
+            OCIContentDescriptor(
+                mediaType="application/vnd.oci.image.layer.v1.tar+gzip",
+                size=77777,
+                digest="sha256:1234876dcfb05cb167a5c24953eba58c4ac89b1adf57f28f2f9d09af107ee123",
+                annotations={},
+                urls=["https://bitbucket/file1.tar.gz"],
+            ),
+        ],
+        "annotations": {},
         "mediaType": "",
     }
 
@@ -76,12 +122,17 @@ async def test_manifest_roundtrip(cli_with_db, caplog):
 
     assert resp.status == 200, f"Error message {await resp.text()}"
     message = await resp.json()
-    assert message.get("manifest_digest") == manifest["config"]["digest"]
+    assert message["manifest_digest"] == manifest["config"]["digest"]
+    assert message["message"]
+    assert message["timestamp"]
 
-    resp = await cli_with_db.get(f'/manifest/{manifest["config"]["digest"]}')
-    assert resp.status == 200
-    get_manifest = await resp.json()
-    assert get_manifest["manifest"] == manifest
+    with MultipartWriter("mixed") as mpwriter:
+        mpwriter.append_json(manifest)
+        resp = await cli_with_db.post("/manifest", data=mpwriter)
+
+    assert resp.status == 200, f"Error message {await resp.text()}"
+    message = await resp.json()
+    assert message.get("manifest_digest") == manifest["config"]["digest"]
 
 
 async def test_manifest_validation_good_manifest():
