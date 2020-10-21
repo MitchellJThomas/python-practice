@@ -18,8 +18,8 @@ The minimum work required to satisfy
 
    - The API endpoints above should work with a simple HTTP Client such
    as curl or Postman.
-
-   - The service must work ephemerally, persisting necessary data structures in memory.
+   
+    - The service must work ephemerally, persisting necessary data structures in memory.
 
 ### Suggested
 
@@ -27,29 +27,44 @@ The minimum work required to satisfy
      able to restart your service and have it give repeatable responses.
  
    - Explain your database schema choices in either comments or prose.
+     - Discussion points:
+       - Single partitioned table
+         - Partitioned by time to allow simpler age-out/storage management
+         - Partitioned by time for performance (maybe). Assumption
+           last few months of images are "popular", assumes frequently updated
+           images. Caching choices and retention guarantees may lead
+           to interesting design choices
+       - Using JSONB type for URLs and annotations
+         - Query performance of JSONB TBD
+         - Accomodate highly variable key/value space
+       - Inefficiences (maybe): redundant manifest config info
+       - No ORM, learn Postgres and SQL-isms
+          - Reduce code dependencies, fewer security issues
+          - Reduce code paths, simpler to debug issues
  
    - Explain how you would change the schema after it has been
      defined, e.g add/remove/change columns with/without downtime to
      the service.
-
-     Considerations:
-     - Ensure you have a fresh archive and you can rely on it (via
-       testing)
-     - Ensure schema changes have the appropriate transactional isolation
-     - New columns with no dependency on existing data are typically
-       easy with some caviates (valid column names, database resources etc.)
-     - To change a column name, introduce a new column and
-       utilize triggers or stored proceedures to keep both columns "live"
-       while the roll-out of new code is in progess.  Once the
-       roll-out is completed then the trigger and the previous name
-       can be removed.
-     - To remove columns, assuming the data present in the column
-       isn't required for subsequent code, the removal can occur once
-       the the new roll-out has happened
-
-   - Use a migration script for each phase of the migration. In this
-     implementation I use https://github.com/sqitchers/sqitch to
-     manage the schema changes.
+     Discussion points:
+        - Establish uptime guarantees/contract to understand schema
+          change requirements
+        - Obvious but usually under-invested: ensure of a reliable
+          archive/restore process
+        - New columns with no dependency on existing data are simple
+          with some caviates (valid column names, database resources
+          etc.)
+        - Changing a column name... do this rarely if ever.  This
+          requires code to manange the transition from the old name
+          the new with the new run-time.
+          Removing old column names could be
+          performed when the partition sub-tables and the associated
+          indexes are dropped after aging out.
+        - To remove columns, see changing column names as this is
+          essentially the same as a column name change from something
+          to nothing.
+        - Use a migration script for each phase of the migration. In this
+          implementation I use https://github.com/sqitchers/sqitch to
+          manage the schema changes.
 
 ### Stretch
 
