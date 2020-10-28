@@ -1,12 +1,13 @@
 version: '3'
 services:
-  toy-manifest-service:
-    image: toy-manifest-service
-    build: .
+  toy-manifest-service-tester:
+    image: toy-manifest-service-tester
+    build:
+      dockerfile: Dockerfile-tester
+      context: .
     ports:
       - 4000:4000
     restart: always
-    read_only: true
     environment:
       PGPASSWORD: oci_comp-123
       PGUSER: manifests
@@ -18,9 +19,9 @@ services:
         target: /layers
     tmpfs:
       - /code/.pytest_cache/
+      - /tmp
     depends_on:
       - "db"
-    user: 2000:2000
   db:
     image: toy-manifest-service-db
     build:
@@ -30,6 +31,8 @@ services:
     environment:
       POSTGRES_PASSWORD: oci_comp-123
       POSTGRES_USER: manifests
+      # note: a database is created using the username
+      # See https://hub.docker.com/_/postgres/
     volumes:
       - db_data:/var/lib/postgresql/data
 volumes:

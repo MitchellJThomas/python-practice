@@ -13,7 +13,7 @@ pytest-mock = "*"
 [packages]
 aiohttp = {extras=["speedups"], version="*"}
 aiofiles = "*"
+asyncpg = "*"
 
 [requires]
 python_version = "3.8"
-
