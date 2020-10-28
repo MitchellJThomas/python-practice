@@ -84,6 +84,10 @@ async def post_manifest(request: web.Request) -> web.Response:
                             size += len(chunk)
                             await f.write(chunk)
                     log.info(f"Wrote {size} bytes to file {filename}")
+                else:
+                    log.warn(
+                        f"Unhandled content_type {content_type} for {part.filename}"
+                    )
 
     return web.json_response(
         {

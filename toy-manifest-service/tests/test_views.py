@@ -78,6 +78,28 @@ async def test_manifest_roundtrip(cli_with_db, caplog):
 
     with MultipartWriter("mixed") as mpwriter:
         mpwriter.append_json(manifest)
+        mpwriter.append(
+            open(
+                "resources/0-sha256-e6ca3592b14484be6a9719617680e0c810e0107d89c437162c75d2401637c72c.tar.gz",
+                "rb",
+            ),
+            {"CONTENT-TYPE": "application/vnd.oci.image.layer.v1.tar+gzip"},
+        )
+        mpwriter.append(
+            open(
+                "resources/1-sha256-534a5505201da9ddb334b5b2fcb3cec45fcafccd8e91b93ad4852e1a1bb318c1.tar.gz",
+                "rb",
+            ),
+            {"CONTENT-TYPE": "application/vnd.oci.image.layer.v1.tar+gzip"},
+        )
+        mpwriter.append(
+            open(
+                "resources/2-sha256-990916bd23bbbf9c30d202dad557e813562d028f3076bf57904830c69d4cde83.tar.gz",
+                "rb",
+            ),
+            {"CONTENT-TYPE": "application/vnd.oci.image.layer.v1.tar+gzip"},
+        )
+
         resp = await cli_with_db.post("/manifest", data=mpwriter)
 
     assert resp.status == 200, f"Error message {await resp.text()}"
