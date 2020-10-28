@@ -5,6 +5,7 @@ repos:
     rev: 377d260ffa6f746693f97b46d95025afc4bd8275 # 5.4.2
     hooks:
       - id: isort
+        args: ["--profile", "black"]
   - repo: https://github.com/psf/black
     rev: 6bedb5c58a7d8c25aa9509f8217bc24e9797e90d # 19.10b0
     hooks:

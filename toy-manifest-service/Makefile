@@ -49,8 +49,8 @@ sqitch-dev: sqitch ## Setup sqitch development environment
 	./sqitch status toy_manifest_db_test
 
 .PHONY: testdb
-testdb:
-	docker run --rm -p 5432:5432 -e POSTGRES_USER=manifests -e POSTGRES_PASSWORD=oci_comp-123 postgres:13
+test-db: build-db
+	docker run --rm -p 5432:5432 --name testdb -e POSTGRES_USER=manifests -e POSTGRES_PASSWORD=oci_comp-123 toy-manifest-service-db:latest
 
 ################################################################################
 # Housekeepking helpers.

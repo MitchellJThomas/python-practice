@@ -7,3 +7,5 @@ manifesttable 2020-10-09T01:07:51Z Mitchell Thomas <mitch.thomas@gmail.com> # Ad
 
 partitions_0 [manifesttable] 2020-10-16T05:32:02Z Mitchell Thomas <mitch.thomas@gmail.com> # Create 12 weeks of partitions
 @v1.0.1 2020-10-20T00:10:51Z Mitchell Thomas <mitch.thomas@gmail.com> # Added 12 weeks of partitoins.
+
+partitions_0_pk [partitions_0] 2020-10-20T01:06:24Z Mitchell Thomas <mitch.thomas@gmail.com> # Add primary keys to the partition tables
