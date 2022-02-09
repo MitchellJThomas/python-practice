@@ -1,4 +1,4 @@
-FROM python:3.8-alpine3.11
+FROM python:3.9-alpine3.15
 RUN addgroup -g 2000 yt && \
     adduser -S -u 2000 -G yt yt
 

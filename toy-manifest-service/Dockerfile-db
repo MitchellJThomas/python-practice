@@ -2,7 +2,7 @@ FROM debian:stable-slim AS sqitch-build
 
 # Install system dependencies.
 WORKDIR /work
-ARG VERSION="1.1.0"
+ARG VERSION="1.2.1"
 RUN mkdir -p /usr/share/man/man1 /usr/share/man/man7 \
     && apt-get -qq update \
     && apt-get -qq install build-essential perl curl libpq-dev  \
@@ -29,7 +29,7 @@ RUN perl Build.PL --quiet --install_base /app --etcdir /etc/sqitch \
 
 FROM postgres:13
 
-RUN apt-get -qq update && apt-get -qq --no-install-recommends install libperl5.28 libpq5 postgresql-client
+RUN apt-get -qq update && apt-get -qq --no-install-recommends install libperl5.32 libpq5 postgresql-client
 
 COPY --from=sqitch-build /app .
 COPY --from=sqitch-build /etc/sqitch /etc/sqitch/

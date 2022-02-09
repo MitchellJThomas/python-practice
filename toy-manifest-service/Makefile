@@ -64,5 +64,5 @@ clean: ## Clean build directories and local docker artifacts
 	docker rmi -f toy-manifest-service-tester:latest
 	docker rmi -f toy-manifest-service:latest
 	docker rmi sqitch/sqitch:latest
-	docker rmi sqitch/sqitch:1.1.0
+	docker rmi sqitch/sqitch:1.2.1
 	docker rm -f -v sqitch-test-db
